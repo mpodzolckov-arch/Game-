@@ -103,6 +103,8 @@ const tg=window.Telegram&&window.Telegram.WebApp;
 if(tg){try{tg.ready();tg.expand();}catch(e){}}
 const buzz=t=>{try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred(t)}catch(e){}};
 const note=x=>tg&&tg.showAlert?tg.showAlert(x):alert(x);
+const BOT_API="https://dark-lands-bot.onrender.com";/* адрес сервера бота, например https://my-bot.onrender.com */
+const notify=(type,text)=>{try{if(!BOT_API||!tg||!tg.initData)return;fetch(BOT_API+"/notify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({initData:tg.initData,type,text,tz:new Date().getTimezoneOffset()}),keepalive:true}).catch(()=>{});}catch(e){}};
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const pc=(a,b)=>Math.max(0,a/b*100);
 const KEY="dark-lands-run3",MK="dark-lands-meta";
@@ -605,11 +607,12 @@ function win(){
   let t="🏆 "+en.name+" повержен! +"+en.reward+" 💰 +"+xp+" ✨"+(up?" 🆙":"");
   if(boss){
     s.cg++;t+=" 🟨 сундук!";
-    if(s.stage>m.boss){m.boss=s.stage;const c=20+Math.floor(s.stage/20)*2;m.cr+=c;t+=" +"+c+" 💎";}
+    if(s.stage>m.boss){m.boss=s.stage;const c=20+Math.floor(s.stage/20)*2;m.cr+=c;t+=" +"+c+" 💎";notify("boss","🐉 "+en.name+" повержен на этапе "+s.stage+"! +"+c+" 💎");}
     const it=drop();t+="<br>🎁 Лут: "+itemTxt(it);
+    if(it.r>=2)notify("loot","🎁 "+RAR[it.r][0]+" предмет «"+it.n+"» выпал с босса на этапе "+s.stage+"!");
   }else if(Math.random()<.12){s.cw++;t+=" 🟫 сундук!";}
   log(t);buzz(boss?"heavy":"light");
-  if(s.stage>=MAXST)log("🏁 ПОБЕДА! Ты прошёл все 10000 этапов!");else s.stage++;
+  if(s.stage>=MAXST){log("🏁 ПОБЕДА! Ты прошёл все 10000 этапов!");notify("win","🏁 Ты победил мифического золотого дракона и прошёл все 10000 этапов!");}else s.stage++;
   spawn();
 }
 function attack(sk){
@@ -682,7 +685,7 @@ function pick(c){
   if(s.heroes.length)levelTo(h,Math.max(1,Math.max(...s.heroes.map(x=>x.lvl))-5));
   s.heroes.push(h);s.sel=s.heroes.length-1;
   $("sheet").hidden=true;spawn();
-  log(CL[c].i+" "+CL[c].n+" присоединился к отряду!");save();draw();
+  log(CL[c].i+" "+CL[c].n+" присоединился к отряду!");notify("hero","👥 "+CL[c].n+" присоединился к отряду!");save();draw();
 }
 // ---------- меню ----------
 let tab="shop";
@@ -734,7 +737,7 @@ const ACT={
   feed(){let n=0;s.heroes.forEach(h=>{if(h.hun<=70&&s.food>0){s.food--;h.hun=Math.min(100,h.hun+40);n++;}});if(n)log("🍖 Накормлено героев: "+n);},
   equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=it.t==="w"?"lw":"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
   sell(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);s.gold+=it.v*6;},
-  claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");},
+  claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");notify("daily","🎁 Награда за день "+n+" получена. Завтра будет новая!");},
   chest(){openChest();},
   newgame(){
     const q="Начать заново? Прогресс забега сбросится, кристаллы, ячейки и эксклюзивное оружие сохранятся.";
