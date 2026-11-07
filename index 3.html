@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тёмные земли</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--text:#f1ecff;--dim:#a99fcf;--gold:#f5c542;--line:rgba(255,255,255,.14);color-scheme:dark;box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0d0a17;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#hud{display:flex;gap:4px;justify-content:space-between;align-items:center;padding:6px 10px;font-size:15px}
+#hud b{color:var(--gold);margin-left:3px}
+#hud button{background:none;font-size:18px;padding:2px 6px}
+#scene{flex:1;position:relative;overflow:hidden;border-radius:18px 18px 0 0;display:flex;flex-direction:column;background:#111;min-height:0}
+#bg{position:absolute;inset:0;z-index:0}#bg svg{width:100%;height:100%;display:block}
+#zone{position:absolute;top:6px;left:0;right:0;text-align:center;font-size:12px;opacity:.9;z-index:2;text-shadow:0 1px 3px #000}
+#foe{flex:1;min-height:0;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:20px}
+#ename{font-weight:700;font-size:14px;text-shadow:0 1px 3px #000,0 0 6px #000}
+#foe .hpb{width:46%;height:9px;margin:4px 0}#foe .hpb i{background:#e5484d;transition:width .25s}
+#eab{max-width:94%;text-align:center;font-size:11px;color:var(--gold);min-height:14px;text-shadow:0 1px 3px #000;margin-bottom:2px}
+.em{position:relative;line-height:0}
+.shd{position:absolute;left:14%;right:14%;bottom:-3px;height:8px;border-radius:50%;background:rgba(0,0,0,.45)}
+.fig{display:inline-block;position:relative;transform-origin:50% 92%;animation:bob 1.7s ease-in-out infinite;transition:rotate .4s;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.fig svg{display:block;overflow:visible}
+@keyframes bob{50%{transform:translateY(-4px) scaleY(1.03)}}
+#foe .fig svg{height:clamp(104px,23dvh,168px);width:auto}
+#foe.big .fig svg{height:clamp(130px,29dvh,215px)}
+#foe .shd{height:12px;left:10%;right:10%}
+#foe .fig{filter:drop-shadow(0 6px 4px rgba(0,0,0,.5))}
+#log{position:relative;z-index:1;font-size:12px;line-height:1.35;text-align:center;text-shadow:0 1px 3px #000,0 0 5px #000;pointer-events:none;padding:0 10px;min-height:36px}
+#log div{opacity:.55}#log div:first-child{opacity:1;font-size:13px}
+#team{position:relative;z-index:1;display:flex;justify-content:center;align-items:flex-end;padding:16px 4px 8px}
+.sp{flex:1;max-width:20%;min-width:0;text-align:center;position:relative}
+.sp:nth-child(even){top:-12px}
+.sp .fig svg{height:clamp(70px,14.5dvh,108px);width:auto;margin:0 auto}
+.sp.sel .shd{background:rgba(255,255,255,.35);box-shadow:0 0 0 2px #fff,0 0 12px #fff}
+.sp.leg .fig{filter:drop-shadow(0 0 9px var(--gold)) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.sp.aleg .fig{filter:drop-shadow(0 0 8px #ffc83d) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.sp.amy .fig{filter:drop-shadow(0 0 9px #ff4d6d) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.sp.dead{filter:grayscale(1);opacity:.5}
+.sp.dead .fig{rotate:90deg;animation:none}
+.sp u{position:absolute;top:-2px;right:6px;font-size:14px;text-decoration:none;z-index:2}
+.hpb{height:6px;background:rgba(0,0,0,.55);border-radius:4px;overflow:hidden;margin:3px 6px}
+.hpb i{display:block;height:100%;background:#46c47a;transition:width .3s}
+.sp small{font-size:10px;color:#dcd4f5;text-shadow:0 1px 2px #000}
+.pop{position:absolute;z-index:6;font-weight:800;font-size:18px;color:#fff;text-shadow:0 2px 3px #000;pointer-events:none;animation:up .9s ease-out forwards;transform:translateX(-50%)}
+.pop.s{color:#ffd24a}.pop.h{color:#7dffa8}.pop.c{color:#ffd24a;font-size:23px}.pop.e{color:#ff6b6b}
+@keyframes up{to{transform:translate(-50%,-48px);opacity:0}}
+.ghost{pointer-events:none;z-index:4}.ghost svg{width:100%;height:100%;display:block}
+.pulse{animation:pulse 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes pulse{50%{transform:scale(1.18);opacity:.7}}
+.flap{animation:flap .22s linear infinite alternate;transform-box:fill-box;transform-origin:center}@keyframes flap{to{transform:scaleY(.55)}}
+.flap2{animation:flap2 .7s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center 70%}@keyframes flap2{to{transform:scaleY(.8)}}
+.flt{animation:flt 2.4s ease-in-out infinite}@keyframes flt{50%{transform:translateY(-6px)}}
+.flick{animation:flick .5s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}@keyframes flick{to{transform:scale(1.04,.95)}}
+.fly{animation:blink 2.6s ease-in-out infinite}@keyframes blink{50%{opacity:.1}}
+.snow{animation:snow 7s linear infinite}@keyframes snow{from{transform:translateY(-20px)}to{transform:translateY(620px)}}
+.ember{animation:ember 5s linear infinite}@keyframes ember{from{transform:translateY(0);opacity:1}to{transform:translateY(-380px);opacity:0}}
+.rain{animation:rain .7s linear infinite}@keyframes rain{from{transform:translate(0,-30px)}to{transform:translate(-14px,620px)}}
+.flash{animation:flash 5s infinite}@keyframes flash{0%,88%,100%{opacity:0}90%{opacity:.8}92%{opacity:.1}94%{opacity:.7}}
+.drift{animation:drift 26s linear infinite alternate}@keyframes drift{to{transform:translateX(50px)}}
+#info{padding:8px 12px;font-size:13px;background:rgba(18,12,32,.94);border-top:1px solid var(--line);line-height:1.5;min-height:62px}
+.xp{height:3px;background:#0d0a17;margin-top:4px}.xp i{display:block;height:100%;background:#8b5cf6}
+#bar{display:flex;gap:8px;padding:8px 10px 10px;background:rgba(18,12,32,.94);align-items:stretch}
+#bar button{flex:1;background:#2c2150;border-radius:14px;font-size:22px;padding:8px 0}
+#bar button small{display:block;font-size:10px;color:var(--dim)}
+#bar button.big{flex:1.6;background:linear-gradient(135deg,#8b5cf6,#6d28d9);font-size:28px}
+button{font:inherit;color:var(--text);border:0;background:#3a2d5c;border-radius:10px;padding:8px 10px}
+button:disabled{opacity:.4}button:active{transform:scale(.96)}
+#sheet{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;z-index:5}
+#sheet[hidden]{display:none}
+#sh{width:100%;max-height:84%;display:flex;flex-direction:column;background:rgba(18,12,32,.97);border-radius:20px 20px 0 0;border-top:1px solid var(--line)}
+.tabs{display:flex;gap:4px;padding:10px 10px 4px;overflow-x:auto}
+.tabs button{background:none;font-size:13px;white-space:nowrap;padding:6px 8px}.tabs button.on{background:#3a2d5c}
+.body{overflow:auto;padding:4px 14px 18px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.r small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+.r button{white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud"><span>🗺️<b id="stage"></b></span><span>💰<b id="gold"></b></span><span>💎<b id="cr"></b></span><button id="bCh">📦<b id="chn"></b></button><button id="bGift">🎁</button><button id="bMenu">☰</button></div>
+  <div id="scene">
+    <div id="bg"></div><div id="zone"></div>
+    <div id="foe"><div id="ename"></div><div class="hpb"><i id="ebar"></i></div><div id="eab"></div><div class="em" id="en"><i class="shd"></i><span class="fig" id="enf"></span></div></div>
+    <div id="log"></div>
+    <div id="team"></div>
+  </div>
+  <div id="info"></div>
+  <div id="bar">
+    <button id="bPot">🧪<small id="npot"></small></button>
+    <button id="bFeed">🍖<small id="nfood"></small></button>
+    <button id="bAtk" class="big">⚔️</button>
+    <button id="bSkill">✨<small id="skn"></small></button>
+  </div>
+  <div id="sheet" hidden><div id="sh"></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){try{tg.ready();tg.expand();}catch(e){}}
+const buzz=t=>{try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred(t)}catch(e){}};
+const note=x=>tg&&tg.showAlert?tg.showAlert(x):alert(x);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pc=(a,b)=>Math.max(0,a/b*100);
+const KEY="dark-lands-run3",MK="dark-lands-meta";
+const EXC=200,ASS=500,SLOT=100,MAXS=5,MAXST=10000,FINAL_HP=1000;
+let m={cr:0,boss:0,slots:1,unl:{},ex:{},daily:{d:"",n:0}};
+let s={stage:1,gold:0,food:5,pot:1,cw:0,cg:0,sel:0,heroes:[],inv:[]};
+try{const r=localStorage.getItem(MK);if(r)m=Object.assign(m,JSON.parse(r));}catch(e){}
+try{const r=localStorage.getItem(KEY);if(r)s=Object.assign(s,JSON.parse(r));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s));localStorage.setItem(MK,JSON.stringify(m))}catch(e){}};
+
+const CL={
+  warrior:{i:"🤺",n:"Воин",hp:100,atk:8,def:0,cd:4,sk:"Несокрушимый удар",d:"Навык: ×3 урон и щит −50% урона по отряду",w:["🗡️","Клинок рассвета",3],x:["⚔️","Экскалибур",5]},
+  mage:{i:"🧙",n:"Маг",hp:90,atk:9,def:0,cd:5,sk:"Метеор",d:"Навык: ×4 урон и оглушение. Каждый 3-й удар — огненный шар",w:["🪄","Посох бури",2],x:["🔮","Посох Архимага",4]},
+  archer:{i:"🏹",n:"Лучник",hp:95,atk:8,def:0,cd:4,sk:"Град стрел",d:"Навык: ×4.5 урон, пробивает чешую. 30% второй стрелы",w:["🏹","Лук ветра",2],x:["🏹","Лук Сириуса",4]},
+  assassin:{i:"🥷",n:"Ассасин «Тень Бездны»",hp:200,atk:14,def:3,cd:4,sk:"Удар из тени",d:"Навык: ×4 крит и неуязвимость в раунде. 200 ❤️, 20% уклонение",w:["🔪","Кинжалы тени",2],x:["🗡️","Кинжалы Бездны",4]},
+  medic:{i:"🧝",n:"Эльф-медик",hp:70,atk:6,def:0,cd:6,sk:"Целебный свет",d:"Каждый раунд лечит самого раненого. Навык: +35% здоровья всем и воскрешение. 70 ❤️",w:["🪄","Жезл жизни",2],x:["🌿","Жезл Древа Жизни",4]}
+};
+const ARM=[["Без брони",0,0,0],["Кожаная броня",5,30,0],["Кольчуга",12,300,0],["Стальные латы",25,3000,0],["Рунная броня",40,20000,0],["Легендарная броня драконоборца",70,0,150],["Мифическая броня Бездны",120,0,400]];
+const RAR=[["Редкий","#4aa3ff",1],["Эпический","#b266ff",1.8],["Легендарный","#ffb020",3],["Мифический","#ff4d6d",5]];
+const LW=["Драконий клинок","Клык дракона","Коготь бури","Реликвия дракона"],LA=["Чешуя дракона","Шлем дракона","Панцирь дракона","Плащ дракона"];
+const ZN=[
+  {n:"🌲 Тёмный лес",m:[["rat","Крыса"],["wolf","Волк"],["spider","Паук"],["boar","Кабан"]],d:"Лесной дракон",ab:{dbl:.2}},
+  {n:"⚰️ Проклятый склеп",m:[["skeleton","Скелет"],["zombie","Зомби"],["ghost","Призрак"],["bat","Летучая мышь"]],d:"Теневой дракон",ab:{rage:3}},
+  {n:"🐸 Гнилое болото",m:[["toad","Жаба-мутант"],["snake","Змея"],["croc","Крокодил"],["gnat","Болотный гнус"]],d:"Ядовитый дракон",ab:{dbl:.25}},
+  {n:"🌋 Огненный вулкан",m:[["imp","Огненный бес"],["scorp","Скорпион"],["flame","Элементаль огня"],["lavagolem","Лавовый голем"]],d:"Огненный дракон",ab:{rage:3}},
+  {n:"❄️ Ледяные пики",m:[["bear","Белый медведь"],["snowwolf","Снежный волк"],["icetroll","Ледяной тролль"],["deer","Морозный олень"]],d:"Ледяной дракон",ab:{arm:.35}},
+  {n:"⛈️ Грозовые скалы",m:[["eagle","Грозовой орёл"],["stonegolem","Каменный голем"],["darkmage","Тёмный маг"],["stormscorp","Громовой скорпион"]],d:"Громовой дракон",ab:{dbl:.3}}
+];
+const abText=a=>[a.arm&&"🛡️ Чешуя −"+Math.round(a.arm*100)+"% урона",a.dbl&&"⚡ "+Math.round(a.dbl*100)+"% двойной удар",a.rage&&"🔥 Ярость: каждый "+a.rage+"-й удар ×2"].filter(Boolean).join(" · ");
+
+// ================= ГРАФИКА (SVG) =================
+const OL='stroke="#1b1226" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"';
+const svg=(vb,b,c)=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+vb+'"'+(c?' class="'+c+'"':"")+'>'+b+'</svg>';
+const mi=b=>'<g transform="translate(120 0) scale(-1 1)">'+b+'</g>';
+const mi2=b=>'<g transform="translate(200 0) scale(-1 1)">'+b+'</g>';
+const P=(d,f,x="")=>`<path d="${d}" fill="${f}" ${OL} ${x}/>`;
+const R=(x,y,w,h,r,f,e="")=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${f}" ${OL} ${e}/>`;
+const C=(x,y,r,f,e="")=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${OL} ${e}/>`;
+const EL=(x,y,rx,ry,f,e="")=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" ${OL} ${e}/>`;
+const NS=(d,f)=>`<path d="${d}" fill="${f}"/>`;
+const ST=(d,c,w=3)=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+const arm=(d,c,w=9)=>`<path d="${d}" fill="none" stroke="#1b1226" stroke-width="${w+3.4}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+const eye=(x,y,r=4.5,c="#fff",pc="#1b1226")=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#1b1226" stroke-width="1.6"/><circle cx="${x}" cy="${y+.6}" r="${r*.5}" fill="${pc}"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.2}" fill="#fff"/>`;
+const glow=(x,y,r,c,k="")=>`<g class="${k}"><circle cx="${x}" cy="${y}" r="${r}" fill="${c}" opacity=".3"/><circle cx="${x}" cy="${y}" r="${r*.62}" fill="${c}" opacity=".5"/></g>`;
+const FANG='fill="#fff" stroke="#1b1226" stroke-width="1.4" stroke-linejoin="round"';
+
+// ---------- ГЕРОИ (viewBox 0 0 100 130) ----------
+const HERO={
+warrior:()=>svg("0 0 100 130",
+ P("M33 92h14v26q0 3-3 3h-8q-3 0-3-3z","#4a5266")+P("M53 92h14v26q0 3-3 3h-8q-3 0-3-3z","#4a5266")+
+ R(30,114,19,10,4,"#3a2a22")+R(51,114,19,10,4,"#3a2a22")+
+ P("M30 56q20-8 40 0l4 38q-24 8-48 0z","#9aa8c4")+ST("M50 60v30","#6f7c97",2)+ST("M37 68q13 6 26 0","#6f7c97",2)+
+ R(29,88,42,7,2,"#7a4b24")+R(45,86,10,10,2,"#f5c542")+
+ C(27,58,11,"#b8c5de")+C(73,58,11,"#b8c5de")+
+ P("M76 58V12l4-8 4 8v46z","#eef3fb")+ST("M80 10v46","#b9c4d8",1.6)+R(70,54,20,5,2,"#f5c542")+R(76,59,8,10,3,"#6b4423")+
+ P("M4 66h25v22q0 14-12.5 20Q4 102 4 88z","#c0392b")+ST("M16.5 70v34M8 82h17","#f5c542",3)+
+ C(50,38,16,"#b8c5de")+P("M38 36h24v8q-12 7-24 0z","#1b1226")+ST("M50 28v16","#8793ad",3)+
+ '<circle cx="44" cy="40" r="1.8" fill="#7fe3ff"/><circle cx="56" cy="40" r="1.8" fill="#7fe3ff"/>'+
+ P("M50 22Q44 6 64 4Q58 10 60 22z","#e5484d")),
+mage:()=>svg("0 0 100 130",
+ P("M36 54h28l16 68H20z","#4452d4")+ST("M50 58v62","#2f3aa0",2)+R(20,116,60,7,3,"#f5c542")+
+ [[38,92],[62,84],[44,106],[58,100]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.4" fill="#ffd54a"/>`).join("")+
+ arm("M36 60Q22 68 24 88","#3a46bf",10)+C(24,91,5,"#f2c9a0")+glow(24,80,9,"#ff9d3b","pulse")+
+ R(76,22,4.5,100,2,"#7b4a22")+arm("M64 60Q80 62 78 82","#3a46bf",10)+C(78,84,5,"#f2c9a0")+
+ glow(78,16,15,"#5ee1ff","pulse")+C(78,16,7,"#aaf4ff")+
+ C(50,40,12,"#f2c9a0")+P("M38 44q12 34 24 0q-12 8-24 0z","#f4f4f4")+
+ '<circle cx="45" cy="39" r="1.8" fill="#1b1226"/><circle cx="55" cy="39" r="1.8" fill="#1b1226"/>'+
+ EL(50,35,27,7,"#3a46bf")+P("M33 34Q46 20 55 2Q61 20 67 34z","#4452d4")+P("M34 31q16 6 32 0v-4q-16 6-32 0z","#f5c542")),
+archer:()=>svg("0 0 100 130",
+ P("M30 56h40l9 50H21z","#2f6b3a")+
+ R(36,92,11,28,4,"#6b4a2b")+R(53,92,11,28,4,"#6b4a2b")+R(33,112,16,10,4,"#4a321d")+R(51,112,16,10,4,"#4a321d")+
+ R(62,44,9,26,3,"#8a5a2b",'transform="rotate(18 66 57)"')+ST("M66 46l-3-9M69.5 47l1-10M73 49l4-8","#e8d9b0",2)+
+ P("M33 56h34l4 40H29z","#4caf50")+R(29,88,42,6,2,"#7a4b24")+R(46,87,8,8,2,"#f5c542")+
+ ST("M22 12Q-8 66 22 120","#7b4a22",5)+ST("M22 12L30 66 22 120","#eeeeee",1.4)+
+ ST("M30 66V14","#d9c9a0",2.4)+P("M30 6l-4.5 10h9z","#cfd6e4")+ST("M30 66l-3 7M30 66l3 7","#e5484d",2.2)+
+ arm("M38 62Q22 62 8 68","#3f9a44",9)+arm("M62 62Q46 68 30 66","#3f9a44",9)+C(8,68,4.5,"#f2c9a0")+C(30,66,4.5,"#f2c9a0")+
+ C(50,38,19,"#2f8a3e")+C(50,42,11,"#f2c9a0")+P("M32 40q2-20 18-20t18 20q-7-12-18-12t-18 12z","#2f8a3e")+
+ '<circle cx="45.5" cy="43" r="1.8" fill="#1b1226"/><circle cx="54.5" cy="43" r="1.8" fill="#1b1226"/>'),
+assassin:()=>svg("0 0 100 130",
+ '<defs><radialGradient id="ga"><stop offset="0" stop-color="#ffd34a" stop-opacity=".55"/><stop offset="1" stop-color="#a14dff" stop-opacity="0"/></radialGradient></defs><circle cx="50" cy="68" r="50" fill="url(#ga)" class="pulse"/>'+
+ P("M32 54h36l13 68H19z","#241a3f")+
+ P("M38 96h10v24H38z","#171127")+P("M52 96h10v24H52z","#171127")+R(36,114,14,8,3,"#f5c542")+R(50,114,14,8,3,"#f5c542")+
+ P("M34 56h32l3 40H31z","#33265c")+ST("M37 59l27 33","#f5c542",4)+C(50,74,4,"#ff4dcb")+
+ P("M31 56l-14-9 4 15z","#f5c542")+P("M69 56l14-9-4 15z","#f5c542")+
+ arm("M34 62Q20 66 22 84","#33265c",9)+arm("M66 62Q80 66 78 84","#33265c",9)+
+ P("M19 82V44l3-11 3 11v38z","#d7ddff")+R(14,80,16,4,2,"#f5c542")+C(22,88,4.5,"#171127")+
+ P("M75 82V44l3-11 3 11v38z","#d7ddff")+R(70,80,16,4,2,"#f5c542")+C(78,88,4.5,"#171127")+
+ P("M50 12q21 6 21 28 0 14-21 16-21-2-21-16 0-22 21-28z","#241a3f")+ST("M30 44Q29 22 50 13","#f5c542",2)+
+ NS("M36 36q14-8 28 0v12q-14 8-28 0z","#0b0716")+P("M36 46q14 10 28 0v7q-14 8-28 0z","#33265c")+
+ glow(43,43,6,"#ffd34a")+glow(57,43,6,"#ffd34a")+
+ '<path d="M39 40l9 2-9 4z" fill="#ffe066"/><path d="M61 40l-9 2 9 4z" fill="#ffe066"/>'),
+medic:()=>svg("0 0 100 130",
+ P("M32 36q0-22 18-22t18 22q2 22-4 36l-6-16H42l-6 16q-6-14-4-36z","#f2d26b")+
+ P("M36 56h28l14 66H22z","#f4f7f2")+NS("M36 56h6L36 122H22zM64 56h-6l6 66h14z","#8fdcae")+
+ R(22,116,56,6,3,"#f5c542")+R(35,88,30,5,2,"#5bbf84")+
+ C(50,72,9,"#ffffff")+NS("M47.5 65h5v4.5h4.5v5h-4.5V79h-5v-4.5H43v-5h4.5z","#e5484d")+
+ arm("M36 60Q22 66 24 84","#f4f7f2",9)+C(24,87,4.5,"#f7d9b8")+glow(24,78,10,"#7dffa8","pulse")+
+ R(76,28,4.5,94,2,"#9a6b3a")+arm("M64 60Q80 62 78 82","#f4f7f2",9)+C(78,84,4.5,"#f7d9b8")+
+ P("M78 30q-14-8-9-22 4 6 9 8 5-2 9-8 5 14-9 22z","#7ed6a0")+glow(78,20,13,"#7dffa8","pulse")+C(78,20,5,"#d6ffe6")+
+ P("M39 38l-15-7 13 14z","#f7d9b8")+P("M61 38l15-7-13 14z","#f7d9b8")+C(50,40,11,"#f7d9b8")+
+ P("M38 37q12-13 24 0-6-5-12-4t-12 4z","#f2d26b")+
+ '<circle cx="45.5" cy="41" r="2" fill="#2f9e5a"/><circle cx="54.5" cy="41" r="2" fill="#2f9e5a"/><path d="M47 47q3 2 6 0" stroke="#b8704f" stroke-width="1.6" fill="none"/>')
+};
+
+// ---------- МОНСТРЫ (viewBox 0 0 120 120) ----------
+const beast=o=>{const p=Object.assign({c:"#7a6a5a",c2:"#d8ccb8",ear:"pt",sn:11,fang:1,tusk:0,ant:0,whisk:0,tail:0,ec:"#ffd33a"},o);
+ const ears=p.ear==="pt"?P("M38 42L33 12l22 16z",p.c)+NS("M39 37L37 22l11 8z","#e8a0a0")+P("M82 42L87 12 65 28z",p.c)+NS("M81 37L83 22l-11 8z","#e8a0a0")
+  :C(35,34,13,p.c)+C(35,34,6.5,"#e8a0a0")+C(85,34,13,p.c)+C(85,34,6.5,"#e8a0a0");
+ const ant=p.ant?ST("M46 34Q38 20 36 4M41 22Q30 20 26 12M38 12Q32 8 31 2","#e3d3ac",4.5)+ST("M74 34Q82 20 84 4M79 22Q90 20 94 12M82 12Q88 8 89 2","#e3d3ac",4.5):"";
+ return svg("0 0 120 120",
+  (p.tail?ST("M88 102Q114 102 108 72",p.c,6):"")+
+  EL(60,92,30,24,p.c)+EL(60,99,16,13,p.c2)+EL(40,112,11,6,p.c)+EL(80,112,11,6,p.c)+
+  ant+ears+C(60,56,27,p.c)+EL(60,66,p.sn+5,p.sn,p.c2)+
+  '<ellipse cx="60" cy="59" rx="5.5" ry="3.8" fill="#1b1226"/>'+ST("M52 73q8 6 16 0","#1b1226",2.6)+
+  (p.fang?'<path d="M53 73l2.2 8 3-6.5zM67 73l-2.2 8-3-6.5z" '+FANG+'/>':"")+
+  (p.tusk?'<path d="M50 70Q38 76 36 58Q46 64 53 66zM70 70Q82 76 84 58Q74 64 67 66z" fill="#f4ecd0" stroke="#1b1226" stroke-width="1.8" stroke-linejoin="round"/>':"")+
+  EL(47,50,6,5.2,p.ec)+EL(73,50,6,5.2,p.ec)+'<circle cx="47" cy="51" r="2.3" fill="#1b1226"/><circle cx="73" cy="51" r="2.3" fill="#1b1226"/>'+
+  ST("M39 42l16 7M81 42l-16 7","#1b1226",3.6)+
+  (p.whisk?ST("M44 66l-22-4M44 70l-22 3M76 66l22-4M76 70l22 3","#1b1226",1.6):""));
+};
+const spider=o=>{const p=Object.assign({c:"#3a2f45",c2:"#c0392b",ec:"#ff4545"},o);
+ const L=[[50,56,26,28,8,48],[50,62,20,52,6,72],[50,68,20,78,8,98],[52,74,28,100,20,116]];
+ const legs=L.map(l=>`M${l[0]} ${l[1]}L${l[2]} ${l[3]}L${l[4]} ${l[5]}`).join("")+L.map(l=>`M${120-l[0]} ${l[1]}L${120-l[2]} ${l[3]}L${120-l[4]} ${l[5]}`).join("");
+ return svg("0 0 120 120",
+  `<path d="${legs}" fill="none" stroke="#1b1226" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="${legs}" fill="none" stroke="${p.c}" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>`+
+  EL(60,84,24,22,p.c)+NS("M60 66l-7 13 7 8 7-8z",p.c2)+C(60,54,15,p.c)+
+  C(54,50,3.8,p.ec)+C(66,50,3.8,p.ec)+C(52,58,2.6,p.ec)+C(68,58,2.6,p.ec)+C(60,46,2.6,p.ec)+
+  '<path d="M54 63l-3.5 10 6.5-6zM66 63l3.5 10-6.5-6z" '+FANG+'/>');
+};
+const fly=o=>{const p=Object.assign({c:"#4a5a2a",c2:"#d6e38a",ec:"#ff4545"},o);
+ const wing=EL(32,46,24,10,"#cdeeff",'opacity=".6" transform="rotate(-28 32 46)"');
+ return svg("0 0 120 120",
+  '<g class="flap">'+wing+mi(wing)+'</g>'+
+  EL(60,82,14,26,p.c)+ST("M47 76h26M48 90h24",p.c2,4)+C(60,48,14,p.c)+C(51,45,8,p.ec)+C(69,45,8,p.ec)+
+  ST("M60 58v20","#1b1226",3)+ST("M48 90l-14 14M72 90l14 14M50 100l-10 12M70 100l10 12","#1b1226",3));
+};
+const scorp=o=>{const p=Object.assign({c:"#8a4a2a",c2:"#d9a066",ec:"#ffd33a"},o);
+ const claw=ST("M42 80Q18 80 18 58",p.c,9)+P("M10 54Q6 28 26 26Q18 38 24 52z",p.c)+P("M30 50Q40 32 26 26Q22 38 26 54z",p.c2);
+ return svg("0 0 120 120",
+  ST("M60 98Q104 104 100 58Q98 32 74 30","#1b1226",12)+ST("M60 98Q104 104 100 58Q98 32 74 30",p.c,8.4)+P("M70 24L60 34 74 40z","#e5484d")+
+  claw+mi(claw)+EL(60,90,24,20,p.c)+ST("M40 90q20 7 40 0M43 101q17 6 34 0",p.c2,3.2)+
+  C(52,80,3.4,p.ec)+C(68,80,3.4,p.ec)+ST("M48 72l8 4M72 72l-8 4","#1b1226",3)+
+  ST("M38 100l-14 10M82 100l14 10M40 106l-8 10M80 106l8 10","#1b1226",3));
+};
+const skel=o=>{const p=Object.assign({b:"#ece6cf",ec:"#7dffe0"},o);
+ const bone=d=>ST(d,"#1b1226",9)+ST(d,p.b,5.4);
+ return svg("0 0 120 120",
+  bone("M50 84V112M70 84V112")+EL(48,114,9,4,p.b)+EL(72,114,9,4,p.b)+P("M44 80Q60 92 76 80V90H44z",p.b)+
+  ST("M60 50V82","#1b1226",8)+ST("M60 50V82",p.b,4)+
+  bone("M42 54Q60 62 78 54")+bone("M43 63Q60 71 77 63")+bone("M45 72Q60 79 75 72")+
+  bone("M42 54L26 68L24 92")+bone("M78 54L94 68L96 92")+C(42,54,6,p.b)+C(78,54,6,p.b)+C(24,94,5,p.b)+C(96,94,5,p.b)+
+  C(98,88,12,"#7b4a22")+C(98,88,4,"#c9a36b")+
+  P("M20 92V42l4-10 4 10v50z","#9aa6b2")+NS("M21 60h4v6h-4zM22 76h3v5h-3z","#8a5a3a")+R(15,90,18,4,2,"#6b4423")+
+  C(60,34,19,p.b)+P("M49 48h22v8q-11 6-22 0z",p.b)+ST("M55 50v6M60 50v7M65 50v6","#1b1226",1.6)+
+  EL(52,33,5.5,6.2,"#1b1226")+EL(68,33,5.5,6.2,"#1b1226")+glow(52,34,6,p.ec)+glow(68,34,6,p.ec)+NS("M60 40l-3 6h6z","#1b1226"));
+};
+const zombie=o=>{const p=Object.assign({s:"#9bb86a"},o);
+ return svg("0 0 120 120",
+  R(46,88,12,26,4,"#5b5046")+R(62,88,12,26,4,"#5b5046")+EL(50,114,9,4,"#3a3028")+EL(70,114,9,4,"#3a3028")+
+  P("M40 54h40l4 38H36z","#7a5a4a")+NS("M44 70l7 8-9 3zM70 62l8 9-10 1z",p.s)+ST("M52 84l6 4M66 80l5 5","#3a2a22",2)+
+  arm("M42 58L18 76",p.s,10)+arm("M78 58L102 76",p.s,10)+C(16,78,6,p.s)+C(104,78,6,p.s)+
+  C(60,34,18,p.s)+P("M43 26l4-9 5 6 4-9 4 9 5-6 4 9 6-5q-8-9-32-5z","#3b3a2a")+
+  eye(52,34,5.4,"#f6f6e0","#c0392b")+eye(68,36,3.6,"#f6f6e0","#c0392b")+
+  P("M49 45Q60 55 71 45Q60 49 49 45z","#3a1520")+ST("M54 46v3M60 47v3M66 46v3","#f4ecd0",2)+ST("M74 25l6 6M76 30l-5 4","#3a3a2a",1.8));
+};
+const ghost=o=>{const p=Object.assign({c:"#d6e8ff",ec:"#7dd6ff"},o);
+ return svg("0 0 120 120",'<g class="flt">'+
+  P("M26 112V56a34 34 0 0 1 68 0v56l-9-8-8 8-9-8-8 8-9-8-8 8-9-8z",p.c,'opacity=".88"')+
+  P("M32 72Q10 78 8 98Q22 86 36 88z",p.c,'opacity=".88"')+P("M88 72Q110 78 112 98Q98 86 84 88z",p.c,'opacity=".88"')+
+  EL(48,52,6.5,9.5,"#1b1226")+EL(72,52,6.5,9.5,"#1b1226")+glow(48,54,5,p.ec)+glow(72,54,5,p.ec)+EL(60,76,8,11,"#1b1226")+'</g>');
+};
+const bat=o=>{const p=Object.assign({c:"#4a3a5a",ec:"#ff4545"},o);
+ const wing=P("M50 56Q30 30 3 38Q12 48 8 62Q18 58 22 70Q31 64 36 78Q44 72 52 76z",p.c)+ST("M50 58L18 52M51 64L20 66M51 70L32 74","#1b1226",1.8);
+ return svg("0 0 120 120",'<g class="flap2">'+wing+mi(wing)+'</g>'+
+  EL(60,74,14,22,p.c)+EL(60,80,8,13,"#7a6a8a")+P("M48 40l-6-20 15 11zM72 40l6-20-15 11z",p.c)+C(60,48,15,p.c)+
+  C(54,47,3.6,p.ec)+C(66,47,3.6,p.ec)+ST("M50 41l8 3M70 41l-8 3","#1b1226",3)+
+  '<path d="M55 55l2 8 3-6zM65 55l-2 8-3-6z" '+FANG+'/>'+ST("M54 94l-4 10M66 94l4 10","#1b1226",3));
+};
+const bird=o=>{const p=Object.assign({c:"#6b4a2a",c2:"#f4efe0",fx:""},o);
+ const wing=P("M52 52Q28 30 2 44L10 52 2 60 12 66 6 76 18 76 14 86Q38 82 52 78z",p.c)+ST("M48 56Q28 46 10 52M48 64Q28 58 12 66M48 72Q30 70 16 76","#1b1226",1.6);
+ return svg("0 0 120 120",p.fx+wing+mi(wing)+EL(60,74,16,26,p.c)+EL(60,80,9,16,p.c2)+
+  C(60,40,16,p.c2)+P("M52 44l8 17 8-17q-8 6-16 0z","#f5b83a")+EL(52,38,4.4,4.4,"#ffe27a")+EL(68,38,4.4,4.4,"#ffe27a")+
+  '<circle cx="52" cy="38" r="1.7" fill="#1b1226"/><circle cx="68" cy="38" r="1.7" fill="#1b1226"/>'+
+  ST("M45 30l11 6M75 30l-11 6","#1b1226",3.4)+ST("M52 98l-4 13M56 99v13M64 99v13M68 98l4 13","#f5b83a",3));
+};
+const frog=o=>{const p=Object.assign({c:"#5a9a3a",c2:"#cfe08a",sp:"#3a6a28"},o);
+ return svg("0 0 120 120",
+  EL(60,86,42,28,p.c)+EL(60,97,28,16,p.c2)+EL(24,108,14,7,p.c)+EL(96,108,14,7,p.c)+
+  [[34,76,4],[80,72,5],[92,88,3.5],[26,92,3]].map(a=>`<circle cx="${a[0]}" cy="${a[1]}" r="${a[2]}" fill="${p.sp}"/>`).join("")+
+  C(40,56,13,p.c)+C(80,56,13,p.c)+EL(40,56,8.5,8.5,"#ffe27a")+EL(80,56,8.5,8.5,"#ffe27a")+
+  EL(40,57,2.3,6,"#1b1226")+EL(80,57,2.3,6,"#1b1226")+ST("M30 46l16 6M90 46l-16 6","#1b1226",3.4)+
+  P("M54 94q6 14 12 0z","#e0607e")+ST("M26 84Q60 104 94 84","#1b1226",3.6));
+};
+const snake=o=>{const p=Object.assign({c:"#4a8a3a",c2:"#d8e08a",hood:0},o);
+ const ring=(y,rx,ry)=>EL(60,y,rx,ry,p.c)+`<ellipse cx="60" cy="${y}" rx="${rx-5}" ry="${ry-4}" fill="none" stroke="${p.c2}" stroke-width="2.6" stroke-dasharray="4 7" stroke-linecap="round"/>`;
+ return svg("0 0 120 120",
+  ring(104,40,12)+ring(92,34,11)+ring(80,28,10)+ST("M60 80V46","#1b1226",20)+ST("M60 80V46",p.c,16.6)+
+  (p.hood?P("M30 52Q60 4 90 52Q60 62 30 52z",p.c)+NS("M52 40Q60 34 68 40Q66 56 60 58Q54 56 52 40z",p.c2):"")+
+  P("M44 40Q60 20 76 40Q74 58 60 60Q46 58 44 40z",p.c)+
+  EL(52,40,4.6,3.8,"#ffe27a")+EL(68,40,4.6,3.8,"#ffe27a")+EL(52,40,1.2,3.4,"#1b1226")+EL(68,40,1.2,3.4,"#1b1226")+
+  '<path d="M54 54l-1.5 9 3.4-6zM66 54l1.5 9-3.4-6z" '+FANG+'/>'+ST("M60 58v9l-4 4M60 67l4 4","#e0305a",2.4));
+};
+const croc=o=>{const p=Object.assign({c:"#4a7a3a",c2:"#cfe08a"},o);
+ const teeth=[38,48,58,68,78].map(x=>`<path d="M${x} 70l3.4 9 3.4-9z" ${FANG}/>`).join("");
+ return svg("0 0 120 120",
+  EL(60,94,40,22,p.c)+EL(24,108,12,7,p.c)+EL(96,108,12,7,p.c)+P("M28 80l4-9 4 9zM42 76l4-10 4 10zM70 76l4-10 4 10zM84 80l4-9 4 9z",p.c2)+
+  P("M30 56Q30 28 60 28Q90 28 90 56V78Q60 92 30 78z",p.c)+P("M36 70h48v10Q60 90 36 80z",p.c2)+teeth+
+  '<circle cx="49" cy="46" r="2.6" fill="#1b1226"/><circle cx="71" cy="46" r="2.6" fill="#1b1226"/>'+
+  C(38,34,9,p.c)+C(82,34,9,p.c)+EL(38,34,5,5,"#ffe27a")+EL(82,34,5,5,"#ffe27a")+EL(38,34,1.3,4.2,"#1b1226")+EL(82,34,1.3,4.2,"#1b1226")+
+  ST("M30 28l10 6M90 28l-10 6","#1b1226",3));
+};
+const golem=o=>{const p=Object.assign({c:"#7d8590",c2:"#a0a8b2",gl:"",ec:"#ffd36a",cr:"",moss:0},o);
+ const crack=p.gl?ST("M60 62l-7 12 9 7-4 11",p.gl,3.2)+ST("M72 70l-6 8",p.gl,2.6)+ST("M36 82l8 4",p.gl,2.6)+ST("M84 76l-8 4",p.gl,2.6):ST("M60 62l-7 12 9 7-4 11","#0006",2.6);
+ const cr=p.cr?P("M20 52l4-18 6 16z",p.cr)+P("M100 52l-4-18-6 16z",p.cr):"";
+ const moss=p.moss?NS("M30 70q8-6 14 0q-6 6-14 0z","#5a8a3a")+NS("M80 84q8-6 14 0q-6 6-14 0z","#5a8a3a")+NS("M18 62q6-6 12 0q-5 5-12 0z","#5a8a3a"):"";
+ return svg("0 0 120 120",
+  R(40,94,17,21,5,p.c)+R(63,94,17,21,5,p.c)+R(8,66,19,34,8,p.c)+R(93,66,19,34,8,p.c)+C(17,104,11,p.c2)+C(103,104,11,p.c2)+
+  P("M30 58q30-10 60 0l4 40H26z",p.c)+P("M42 62h36l2 26H40z",p.c2)+crack+C(26,62,13,p.c2)+C(94,62,13,p.c2)+cr+moss+
+  R(46,30,28,26,7,p.c2)+R(50,40,8,4.5,1,p.ec)+R(62,40,8,4.5,1,p.ec)+glow(54,42,6,p.ec)+glow(66,42,6,p.ec)+ST("M52 51h16","#1b1226",2.6));
+};
+const troll=o=>{const p=Object.assign({c:"#8aa0b8",c2:"#c8d6e4",cr:"#9ee6ff"},o);
+ return svg("0 0 120 120",
+  R(44,96,13,19,5,p.c)+R(63,96,13,19,5,p.c)+R(96,28,10,68,5,"#7b4a22",'transform="rotate(8 101 62)"')+C(106,32,10,"#6b4a2a")+
+  EL(60,82,32,28,p.c)+EL(60,88,20,18,p.c2)+P("M44 98h32l-4 14H48z","#6b4a2a")+
+  arm("M34 64Q12 72 14 100",p.c,15)+arm("M86 64Q104 72 102 96",p.c,15)+C(14,102,10,p.c)+C(102,98,10,p.c)+
+  P("M32 62l-6-20 12 14zM88 62l6-20-12 14z",p.cr)+
+  P("M42 36l-12-6 12 16z",p.c)+P("M78 36l12-6-12 16z",p.c)+C(60,46,20,p.c)+P("M46 30l4-16 5 12 5-18 5 18 5-12 4 16z",p.cr)+
+  EL(52,46,3.8,3.2,"#ffe27a")+EL(68,46,3.8,3.2,"#ffe27a")+ST("M45 40l11 5M75 40l-11 5","#1b1226",3.2)+
+  ST("M50 58Q60 64 70 58","#1b1226",2.6)+P("M51 59l-3 12 8-7zM69 59l3 12-8-7z","#f4ecd0"));
+};
+const imp=o=>{const p=Object.assign({c:"#d6382a"},o);
+ const wing=P("M44 62Q20 40 8 56Q22 56 20 70Q30 66 36 78z","#7a1e1e");
+ return svg("0 0 120 120",
+  wing+mi(wing)+ST("M70 100Q100 104 98 82","#1b1226",7)+ST("M70 100Q100 104 98 82",p.c,4)+P("M98 84l-7 1 4-11 7 9z",p.c)+
+  EL(60,84,18,22,p.c)+EL(60,88,10,14,"#ff9f6b")+EL(48,108,9,6,p.c)+EL(72,108,9,6,p.c)+
+  arm("M44 72Q28 70 26 56",p.c,7)+P("M24 56q-9-10 0-22 2 8 8 10 4-6 2-14 12 12-2 26z","#ffb02e")+NS("M27 54q-4-6 0-12 3 4 6 5 2-3 1-7 5 8-1 14z","#fff1a0")+
+  arm("M76 72Q92 70 94 80",p.c,7)+
+  P("M46 36L38 12l14 12zM74 36l8-24-14 12z","#2a1a1a")+P("M42 52l-16-5 11 13zM78 52l16-5-11 13z",p.c)+C(60,50,20,p.c)+
+  EL(52,48,4.4,3.8,"#ffe27a")+EL(68,48,4.4,3.8,"#ffe27a")+'<circle cx="52" cy="48" r="1.5" fill="#1b1226"/><circle cx="68" cy="48" r="1.5" fill="#1b1226"/>'+
+  ST("M45 41l11 4M75 41l-11 4","#1b1226",3.2)+P("M48 58Q60 72 72 58Q60 62 48 58z","#2a0a0a")+'<path d="M52 60l2 5 3-4zM68 60l-2 5-3-4z" '+FANG+'/>');
+};
+const flame=()=>svg("0 0 120 120",
+  '<g class="flick">'+P("M60 4Q76 30 74 44Q92 34 90 62Q96 90 74 108Q60 116 46 108Q24 90 30 62Q28 36 46 44Q44 30 60 4z","#e8420e")+
+  NS("M60 28Q72 52 70 66Q82 62 78 84Q74 100 60 104Q46 100 42 84Q38 62 50 66Q48 52 60 28z","#ff8a1e")+
+  NS("M60 58Q68 74 66 88Q64 98 60 100Q56 98 54 88Q52 74 60 58z","#ffd84a")+'</g>'+
+  P("M42 62l14 8-3 7-12-6z","#1b1226")+P("M78 62l-14 8 3 7 12-6z","#1b1226")+
+  '<path d="M45 66l8 4M75 66l-8 4" stroke="#fff6b0" stroke-width="2.4" stroke-linecap="round"/>'+ST("M50 90Q60 98 70 90","#1b1226",3.2));
+const wizard=()=>svg("0 0 120 120",
+  P("M36 50h48l16 64H20z","#2b1b4a")+ST("M20 112h80","#9a6bff",3)+ST("M60 54v58","#1a1030",2)+
+  R(96,16,5,98,2.5,"#4a3a6a")+glow(98,14,14,"#b36bff","pulse")+C(98,14,7,"#e2c4ff")+
+  arm("M40 58L22 76","#2b1b4a",10)+C(20,78,5.5,"#c9b8d8")+glow(20,66,13,"#b36bff","pulse")+C(20,66,6,"#e2c4ff")+
+  arm("M80 58Q96 62 98 84","#2b1b4a",10)+C(98,86,5.5,"#c9b8d8")+
+  P("M60 8Q86 12 86 44Q86 62 60 66Q34 62 34 44Q34 12 60 8z","#1b1030")+EL(60,46,17,15,"#0a0612")+
+  glow(52,44,7,"#ff5fd2")+glow(68,44,7,"#ff5fd2")+'<ellipse cx="52" cy="44" rx="4" ry="2.6" fill="#ffd0f3"/><ellipse cx="68" cy="44" rx="4" ry="2.6" fill="#ffd0f3"/>');
+
+// ---------- ДРАКОНЫ (viewBox 0 0 200 170) ----------
+const dragon=o=>{const p=Object.assign({c:"#2f8f4e",c2:"#c7e08a",w:"#6fc45a",h:"#e8d9a0",ec:"#ffe03a",aura:"",fx:"",crown:0},o);
+ const wing=P("M80 72Q40 22 4 32Q16 50 10 68Q24 64 28 86Q42 78 52 100Q66 90 82 102z",p.w)+ST("M80 72Q42 42 4 32M80 78Q36 62 10 68M82 88Q44 80 28 86M84 98Q56 94 52 100",p.c,3.2);
+ const claw=EL(70,128,14,9,p.c)+'<path d="M60 134l-2 7 5-4zM68 136l-1 7 5-5zM76 135l1 7 4-6z" '+FANG+'/>';
+ return svg("0 0 200 170",
+  (p.aura?'<circle cx="100" cy="86" r="80" fill="'+p.aura+'" opacity=".22"/><circle cx="100" cy="86" r="56" fill="'+p.aura+'" opacity=".22"/>':"")+p.fx+
+  wing+mi2(wing)+P("M100 140Q70 170 30 152Q58 156 84 128z",p.c)+P("M30 152l-10-12 18 4z",p.h)+
+  P("M100 56Q130 70 126 110Q122 148 100 154Q78 148 74 110Q70 70 100 56z",p.c)+
+  P("M100 76Q116 88 114 112Q112 140 100 148Q88 140 86 112Q84 88 100 76z",p.c2)+
+  '<path d="M89 96q11 6 22 0M88 108q12 6 24 0M89 120q11 6 22 0M91 132q9 5 18 0" stroke="#0003" stroke-width="2" fill="none"/>'+
+  claw+mi2(claw)+
+  P("M80 26Q62 14 50 2Q58 26 76 38z",p.h)+P("M120 26Q138 14 150 2Q142 26 124 38z",p.h)+
+  P("M72 44Q72 14 100 14Q128 14 128 44Q128 66 112 76L100 82 88 76Q72 66 72 44z",p.c)+
+  P("M84 56Q100 48 116 56L112 76 100 82 88 76z",p.c2)+
+  '<circle cx="94" cy="66" r="2.6" fill="#1b1226"/><circle cx="106" cy="66" r="2.6" fill="#1b1226"/>'+
+  '<path d="M88 76l3 9 3-7zM112 76l-3 9-3-7z" '+FANG+'/>'+P("M92 18l4-14 4 12 4-12 4 14z",p.h)+
+  glow(89,45,9,p.ec)+glow(111,45,9,p.ec)+P("M82 36l15 7-3 9-14-6z",p.ec)+P("M118 36l-15 7 3 9 14-6z",p.ec)+
+  '<path d="M90 42v7M110 42v7" stroke="#1b1226" stroke-width="2.4"/>'+
+  (p.crown?P("M82 20l4-14 7 9 7-14 7 14 7-9 4 14z","#ffd34a")+C(100,12,2.6,"#ff4d6d"):""),"drg");
+};
+const sp=(a)=>a.map(([x,y,r,c])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" opacity=".7"/>`).join("");
+const bolt=(x,y,c="#ffe27a")=>`<path d="M${x} ${y}l10 18-8 2 12 22" fill="none" stroke="${c}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+const rays=()=>{let a="";for(let i=0;i<12;i++){const t=i*Math.PI/6,u=.13;a+=`<path d="M100 86L${(100+84*Math.cos(t-u)).toFixed(1)} ${(86+84*Math.sin(t-u)).toFixed(1)}L${(100+84*Math.cos(t+u)).toFixed(1)} ${(86+84*Math.sin(t+u)).toFixed(1)}z" fill="#ffd34a" opacity=".2"/>`;}return '<g>'+a+'</g>';};
+const DRG=[
+ ()=>dragon({c:"#2f8f4e",c2:"#c7e08a",w:"#6fc45a",h:"#e8d9a0",ec:"#ffe03a",fx:'<path d="M14 20q10-8 16 2-9 8-16-2zM170 30q10-8 16 2-9 8-16-2zM20 120q10-8 16 2-9 8-16-2z" fill="#7fd06a"/>'}),
+ ()=>dragon({c:"#4a3a78",c2:"#8f7fc4",w:"#2a1f4a",h:"#cfc6ff",ec:"#ff5fd2",aura:"#7a4dff",fx:sp([[20,40,7,"#b99bff"],[176,60,9,"#b99bff"],[30,130,6,"#b99bff"],[170,130,8,"#b99bff"]])}),
+ ()=>dragon({c:"#7a9a2e",c2:"#d6e38a",w:"#4a6a1e",h:"#d9d08a",ec:"#c8ff3a",aura:"#9aff3a",fx:sp([[24,60,5,"#9aff3a"],[30,76,3,"#9aff3a"],[176,90,5,"#9aff3a"],[170,106,3,"#9aff3a"]])}),
+ ()=>dragon({c:"#c43a1a",c2:"#ffb347",w:"#7a1d12",h:"#2a1a1a",ec:"#ffe03a",aura:"#ff6a1a",fx:sp([[22,50,5,"#ffb347"],[40,22,4,"#ffd84a"],[172,40,5,"#ffb347"],[160,16,4,"#ffd84a"],[26,120,4,"#ffb347"]])}),
+ ()=>dragon({c:"#6fb6e8",c2:"#e6f6ff",w:"#a8dcff",h:"#ffffff",ec:"#7ad7ff",aura:"#bfe9ff",fx:'<path d="M14 40l6-20 6 20-6 8zM176 36l6-22 6 22-6 8zM20 130l6-18 6 18-6 8z" fill="#e6f6ff" stroke="#7ab6e0" stroke-width="2"/>'}),
+ ()=>dragon({c:"#4a5a8f",c2:"#b8c4e8",w:"#2a3358",h:"#ffe27a",ec:"#ffe27a",aura:"#6a8aff",fx:bolt(14,14)+bolt(172,20)+bolt(20,100)+bolt(176,104)})
+];
+const GOLD=()=>dragon({c:"#e8b22c",c2:"#ffe08a",w:"#c98a14",h:"#fff3b0",ec:"#ff4d4d",aura:"#ffd34a",crown:1,fx:rays()});
+const MOB={
+ rat:()=>beast({c:"#7d756c",c2:"#d8ccc0",ear:"rd",sn:8,whisk:1,tail:1,ec:"#ff5a5a"}),
+ wolf:()=>beast({c:"#6a6f78",c2:"#c9ced6",sn:13}),
+ spider:()=>spider(),
+ boar:()=>beast({c:"#6b4a3a",c2:"#b88a68",sn:12,fang:0,tusk:1,ec:"#ff7a3a"}),
+ skeleton:()=>skel(),zombie:()=>zombie(),ghost:()=>ghost(),bat:()=>bat(),
+ toad:()=>frog(),snake:()=>snake({hood:1}),croc:()=>croc(),gnat:()=>fly(),
+ imp:()=>imp(),scorp:()=>scorp(),flame:()=>flame(),
+ lavagolem:()=>golem({c:"#4a2a22",c2:"#6b3a2c",gl:"#ff8a1e",ec:"#ffcf3a"}),
+ bear:()=>beast({c:"#e8eef4",c2:"#ffffff",ear:"rd",sn:13,ec:"#7ad7ff"}),
+ snowwolf:()=>beast({c:"#cfd8e4",c2:"#f4f8fc",sn:13,ec:"#7ad7ff"}),
+ icetroll:()=>troll(),
+ deer:()=>beast({c:"#9db6c9",c2:"#e8f0f6",sn:12,fang:0,ant:1,ec:"#7ad7ff"}),
+ eagle:()=>bird({fx:bolt(8,10)+bolt(104,6)}),
+ stonegolem:()=>golem({c:"#6f7782",c2:"#8f98a4",moss:1,ec:"#7ad7ff"}),
+ darkmage:()=>wizard(),
+ stormscorp:()=>scorp({c:"#3a4a7a",c2:"#8fa0d8",ec:"#ffe27a"})
+};
+
+// ---------- ФОНЫ (viewBox 0 0 400 600) ----------
+const rng=seed=>{let x=seed;return()=>(x=x*16807%2147483647)/2147483647;};
+const bgW=(inner,defs)=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice"><defs>'+defs+'<radialGradient id="vg" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient></defs>'+inner+'<rect width="400" height="600" fill="url(#vg)"/></svg>';
+const lg=(id,st)=>`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${st.map(s=>`<stop offset="${s[0]}" stop-color="${s[1]}"/>`).join("")}</linearGradient>`;
+const tri=(x,y,w,h,c)=>`<path d="M${x-w/2} ${y}L${x} ${y-h}L${x+w/2} ${y}z" fill="${c}"/>`;
+const stars=(r,n,c="#fff")=>{let a="";for(let i=0;i<n;i++)a+=`<circle cx="${(r()*400).toFixed(0)}" cy="${(r()*200).toFixed(0)}" r="${(r()*1.3+.4).toFixed(1)}" fill="${c}" opacity="${(r()*.6+.3).toFixed(2)}"/>`;return a;};
+const dots=(r,n,cls,fill,y0,y1,rad)=>{let a="";for(let i=0;i<n;i++)a+=`<circle class="${cls}" cx="${(r()*400).toFixed(0)}" cy="${(y0+r()*(y1-y0)).toFixed(0)}" r="${(r()*rad+1).toFixed(1)}" fill="${fill}" style="animation-delay:-${(r()*6).toFixed(1)}s;animation-duration:${(4+r()*5).toFixed(1)}s"/>`;return a;};
+const tufts=(r,n,y0,c)=>{let d="";for(let i=0;i<n;i++){const x=r()*400,y=y0+r()*(600-y0);d+=`M${x.toFixed(0)} ${y.toFixed(0)}l-2-8M${x.toFixed(0)} ${y.toFixed(0)}l1-10M${x.toFixed(0)} ${y.toFixed(0)}l4-7`;}return `<path d="${d}" stroke="${c}" stroke-width="2" stroke-linecap="round" fill="none" opacity=".8"/>`;};
+const BG=[
+ // 0: тёмный лес
+ ()=>{const r=rng(7);let a='<rect width="400" height="600" fill="url(#s0)"/>'+stars(r,26)+'<circle cx="318" cy="84" r="40" fill="#f1f7d8" opacity=".16"/><circle cx="318" cy="84" r="25" fill="#f1f7d8"/>';
+  a+='<path d="M0 250Q80 190 170 236T330 226T400 240V280H0z" fill="#1d4a35"/>';
+  for(let i=0;i<16;i++)a+=tri(i*26+r()*10,268,34,56+r()*30,"#12382a");
+  a+='<path d="M0 266H400V600H0z" fill="url(#g0)"/><path d="M178 266Q150 420 70 600H330Q250 420 222 266z" fill="#7a5a3a" opacity=".42"/>'+tufts(r,50,280,"#46a85e");
+  [[34,340,1.5],[368,330,1.4],[98,300,.9],[312,296,.9]].forEach(([x,y,s])=>{a+=`<rect x="${x-5*s}" y="${y-30*s}" width="${10*s}" height="${34*s}" fill="#3a2a1c"/>`+tri(x,y-24*s,76*s,58*s,"#1d5a36")+tri(x,y-56*s,62*s,54*s,"#23703f")+tri(x,y-88*s,46*s,50*s,"#2a8a4a");});
+  a+='<ellipse cx="200" cy="300" rx="260" ry="30" fill="#bfe8d0" opacity=".08"/>'+dots(r,16,"fly","#d9ff7a",300,560,1.6);
+  return bgW(a,lg("s0",[[0,"#0b1f2e"],[.4,"#1f5a55"],[.5,"#2f7a5a"]])+lg("g0",[[0,"#2f6b3c"],[1,"#0e2616"]]));},
+ // 1: проклятый склеп
+ ()=>{const r=rng(11);let a='<rect width="400" height="600" fill="url(#s1)"/>'+stars(r,34,"#e8e0ff")+'<circle cx="130" cy="92" r="58" fill="#cfc4ff" opacity=".13"/><circle cx="130" cy="92" r="42" fill="#e9e3ff"/><circle cx="118" cy="82" r="7" fill="#cfc6ee"/><circle cx="144" cy="104" r="5" fill="#cfc6ee"/>';
+  a+='<path d="M0 262Q100 226 200 256T400 240V290H0z" fill="#241a3c"/>';
+  a+='<path d="M0 266H400V600H0z" fill="url(#g1)"/>';
+  for(let x=-4;x<410;x+=20)a+=`<path d="M${x} 300V276l4-8 4 8v24" fill="none" stroke="#14101f" stroke-width="2.4"/>`;
+  a+='<path d="M0 290H400" stroke="#14101f" stroke-width="3"/>';
+  [[40,350],[110,330],[300,336],[362,356],[210,322]].forEach(([x,y],i)=>{a+=`<path d="M${x-13} ${y}V${y-34}a13 13 0 0 1 26 0V${y}z" fill="#59557a" stroke="#14101f" stroke-width="2"/>`+(i%2?`<path d="M${x} ${y-30}v14M${x-6} ${y-24}h12" stroke="#2a2640" stroke-width="3"/>`:`<path d="M${x-6} ${y-20}h12M${x-6} ${y-14}h12" stroke="#2a2640" stroke-width="2"/>`);});
+  a+='<path d="M356 300Q340 250 350 200M350 200L322 176M350 214L384 190M344 238L318 232" stroke="#0e0a18" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M40 300Q60 250 46 210M46 210L74 186M52 238L22 226" stroke="#0e0a18" stroke-width="6" stroke-linecap="round" fill="none"/>';
+  for(let i=0;i<30;i++){const x=r()*400,y=380+r()*200;a+=`<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="${(10+r()*14).toFixed(0)}" ry="${(4+r()*4).toFixed(0)}" fill="#2a2440" opacity=".7"/>`;}
+  a+='<g class="drift"><ellipse cx="160" cy="330" rx="240" ry="26" fill="#cfc4ff" opacity=".1"/><ellipse cx="260" cy="470" rx="240" ry="30" fill="#cfc4ff" opacity=".08"/></g>'+dots(r,10,"fly","#b99bff",300,560,1.8);
+  return bgW(a,lg("s1",[[0,"#0d0a1f"],[.45,"#3a2a5c"],[.5,"#4a3a72"]])+lg("g1",[[0,"#3a3350"],[1,"#120e1e"]]));},
+ // 2: гнилое болото
+ ()=>{const r=rng(23);let a='<rect width="400" height="600" fill="url(#s2)"/>';
+  a+='<path d="M0 262Q120 236 220 258T400 250V290H0z" fill="#1f3a28"/>'+'<path d="M0 270H400V600H0z" fill="url(#g2)"/>';
+  for(let i=0;i<8;i++){const x=r()*400,y=330+r()*230;a+=`<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="${(40+r()*40).toFixed(0)}" ry="${(10+r()*10).toFixed(0)}" fill="#2a5a4a" opacity=".85"/><ellipse cx="${(x-6).toFixed(0)}" cy="${(y-2).toFixed(0)}" rx="${(20+r()*20).toFixed(0)}" ry="4" fill="#4a8a74" opacity=".5"/>`;}
+  for(let i=0;i<10;i++){const x=r()*400,y=320+r()*250;a+=`<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="12" ry="5" fill="#4a8a3a" stroke="#1d4a1d" stroke-width="1.5"/>`;}
+  [[24,300,1.3],[380,296,1.2]].forEach(([x,y,s])=>{a+=`<path d="M${x-14*s} ${y+40}Q${x-10*s} ${y-60*s} ${x} ${y-120*s}Q${x+12*s} ${y-60*s} ${x+16*s} ${y+40}z" fill="#3a2a1c"/><ellipse cx="${x}" cy="${y-120*s}" rx="${70*s}" ry="${34*s}" fill="#1f4a2a"/><ellipse cx="${x}" cy="${y-136*s}" rx="${48*s}" ry="${24*s}" fill="#2a6a38"/>`;for(let k=-3;k<=3;k++)a+=`<path d="M${x+k*18*s} ${y-110*s}q4 24 0 50q-4 20 2 34" stroke="#6a9a5a" stroke-width="3" fill="none" opacity=".75"/>`;});
+  for(let i=0;i<22;i++){const x=r()*400,y=300+r()*270;a+=`<path d="M${x.toFixed(0)} ${y.toFixed(0)}v-34" stroke="#5a6a2a" stroke-width="2.4"/><rect x="${(x-2.5).toFixed(0)}" y="${(y-46).toFixed(0)}" width="5" height="14" rx="2.5" fill="#6a4a2a"/>`;}
+  a+='<g class="drift"><ellipse cx="200" cy="310" rx="260" ry="34" fill="#bfe8a0" opacity=".1"/></g>'+dots(r,14,"fly","#7dffe0",300,560,2.2);
+  return bgW(a,lg("s2",[[0,"#10201a"],[.42,"#34553a"],[.5,"#5a7a44"]])+lg("g2",[[0,"#3a5a34"],[1,"#101c12"]]));},
+ // 3: огненный вулкан
+ ()=>{const r=rng(31);let a='<rect width="400" height="600" fill="url(#s3)"/>';
+  a+='<path d="M0 262L50 200L96 250L130 214L170 262z" fill="#2a1410"/><path d="M230 262L282 196L330 248L368 206L400 250V270H230z" fill="#2a1410"/>';
+  a+='<path d="M54 280L168 108Q200 94 232 108L346 280z" fill="#2c1511"/><path d="M168 108Q200 94 232 108L226 124Q200 112 174 124z" fill="#ffb347"/><ellipse cx="200" cy="106" rx="38" ry="9" fill="#ffd84a"/>';
+  a+='<path d="M186 120L170 190L150 280M214 122L226 200L250 280M200 124L204 210L196 280" stroke="#ff7a2a" stroke-width="6" fill="none" stroke-linecap="round" opacity=".85"/>';
+  a+='<g class="drift"><circle cx="188" cy="78" r="22" fill="#4a3a38" opacity=".5"/><circle cx="214" cy="56" r="28" fill="#4a3a38" opacity=".42"/><circle cx="196" cy="30" r="30" fill="#3a2a2a" opacity=".4"/></g>';
+  a+='<path d="M0 272H400V600H0z" fill="url(#g3)"/>';
+  a+='<path d="M0 330Q80 340 120 380T220 420T400 400" stroke="#ff6a1a" stroke-width="7" fill="none" stroke-linecap="round" opacity=".85"/><path d="M0 330Q80 340 120 380T220 420T400 400" stroke="#ffd84a" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+  a+='<path d="M400 470Q300 480 250 520T90 560T0 590" stroke="#ff6a1a" stroke-width="8" fill="none" stroke-linecap="round" opacity=".85"/><path d="M400 470Q300 480 250 520T90 560T0 590" stroke="#ffd84a" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+  for(let i=0;i<14;i++){const x=r()*400,y=300+r()*280;a+=`<path d="M${x.toFixed(0)} ${y.toFixed(0)}l${(r()*30-15).toFixed(0)} ${(r()*14).toFixed(0)}l${(r()*20-10).toFixed(0)} ${(r()*20).toFixed(0)}" stroke="#ff8a1e" stroke-width="2" fill="none" opacity=".7"/>`;}
+  a+=dots(r,22,"ember","#ffb347",420,600,2.4);
+  return bgW(a,lg("s3",[[0,"#240808"],[.3,"#7a1d12"],[.45,"#e8541a"],[.5,"#ff9a3a"]])+lg("g3",[[0,"#3a1a14"],[1,"#0e0605"]]));},
+ // 4: ледяные пики
+ ()=>{const r=rng(41);let a='<rect width="400" height="600" fill="url(#s4)"/>'+stars(r,28,"#ffffff");
+  a+='<g class="drift"><path d="M0 120Q100 60 200 110T400 90" stroke="#4dffb0" stroke-width="26" fill="none" opacity=".2"/><path d="M0 160Q120 100 220 150T400 130" stroke="#b06bff" stroke-width="20" fill="none" opacity=".18"/></g>';
+  [[60,270,150,170],[190,270,190,230],[330,270,160,180]].forEach(([x,y,w,h])=>{a+=tri(x,y,w,h,"#8fb8d8")+`<path d="M${x} ${y-h}L${x+w/2} ${y}H${x}z" fill="#6f9cc0"/>`+`<path d="M${x} ${y-h}l-${w*.16} ${h*.28}l${w*.07} -${h*.05}l${w*.09} ${h*.1}l${w*.09} -${h*.1}l${w*.07} ${h*.05}z" fill="#f4faff"/>`;});
+  a+='<path d="M0 272H400V600H0z" fill="url(#g4)"/>';
+  for(let i=0;i<7;i++){const x=r()*400,y=320+r()*250;a+=`<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="${(30+r()*30).toFixed(0)}" ry="${(8+r()*8).toFixed(0)}" fill="#bfe6ff" opacity=".55"/>`;}
+  [[22,330,1.4],[380,340,1.5],[86,296,.8],[324,300,.8]].forEach(([x,y,s])=>{a+=`<path d="M${x-10*s} ${y}L${x-4*s} ${y-70*s}L${x+2*s} ${y-90*s}L${x+10*s} ${y-60*s}L${x+14*s} ${y}z" fill="#bfe9ff" stroke="#6fa8d0" stroke-width="2"/><path d="M${x} ${y-86*s}L${x-2*s} ${y}" stroke="#fff" stroke-width="2.4" opacity=".7"/>`;});
+  a+=dots(r,34,"snow","#ffffff",0,40,2.2);
+  return bgW(a,lg("s4",[[0,"#0e2a4a"],[.45,"#6aa8d0"],[.5,"#c8e8f8"]])+lg("g4",[[0,"#e8f4ff"],[1,"#6f98b8"]]));},
+ // 5: грозовые скалы
+ ()=>{const r=rng(53);let a='<rect width="400" height="600" fill="url(#s5)"/>';
+  for(let i=0;i<14;i++){const x=r()*420-10,y=40+r()*190,rad=40+r()*40;a+=`<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rad.toFixed(0)}" fill="${i%2?"#2a3050":"#3a4470"}" opacity=".85"/>`;}
+  a+='<rect width="400" height="600" fill="#fff" opacity="0" class="flash"/><path d="M230 60l-24 70 22-4-30 88" fill="none" stroke="#fff3a0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="flash"/><path d="M120 40l-14 50 14-3-18 46" fill="none" stroke="#fff3a0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="flash" style="animation-delay:-2s"/>';
+  a+='<path d="M0 262L40 190L74 232L120 176L160 250L200 236L260 170L310 246L350 210L400 256V280H0z" fill="#262b45"/>';
+  a+='<path d="M0 274H400V600H0z" fill="url(#g5)"/>';
+  [[40,340,1.4],[364,330,1.3],[130,300,.8],[282,296,.8]].forEach(([x,y,s])=>{a+=`<path d="M${x-26*s} ${y}L${x-18*s} ${y-90*s}L${x-4*s} ${y-110*s}L${x+14*s} ${y-96*s}L${x+26*s} ${y}z" fill="#5a6280" stroke="#1a1d30" stroke-width="2.4"/><path d="M${x-4*s} ${y-110*s}L${x+14*s} ${y-96*s}L${x+26*s} ${y}H${x+4*s}z" fill="#454c68"/>`;});
+  for(let i=0;i<16;i++){const x=r()*400,y=320+r()*260;a+=`<path d="M${x.toFixed(0)} ${y.toFixed(0)}l${(r()*40-20).toFixed(0)} ${(r()*10).toFixed(0)}l${(r()*30-15).toFixed(0)} ${(r()*18).toFixed(0)}" stroke="#1a1d30" stroke-width="2" fill="none" opacity=".8"/>`;}
+  for(let i=0;i<30;i++){const x=r()*420,y=r()*560;a+=`<path class="rain" d="M${x.toFixed(0)} ${y.toFixed(0)}l-3 14" stroke="#bcd0ff" stroke-width="1.4" opacity=".5" style="animation-delay:-${(r()*.7).toFixed(2)}s"/>`;}
+  return bgW(a,lg("s5",[[0,"#0a0f24"],[.45,"#3a4470"],[.5,"#4a5488"]])+lg("g5",[[0,"#4a5068"],[1,"#12152a"]]));}
+];
+
+const mk=c=>{const d=CL[c];return{cls:c,lvl:1,xp:0,wl:0,arm:0,t:0,cd:0,hun:100,lw:null,la:null,maxHp:d.hp,hp:d.hp,atk:d.atk,def:d.def};};
+const wp=h=>m.ex[h.cls]?CL[h.cls].x:CL[h.cls].w;
+const X=h=>m.ex[h.cls]?2:1;
+const A=h=>Math.round((h.atk+h.wl*wp(h)[2]+(h.lw?h.lw.v:0))*(h.hun<=0?.7:1));
+const D=h=>h.def+ARM[h.arm][1]+(h.la?h.la.v:0);
+const need=l=>20+l*15;
+const sel=()=>s.heroes[s.sel]||s.heroes[0];
+const costs=h=>({pot:12+s.stage*2,food:Math.round(4+s.stage*.5),sword:15+h.wl*h.wl*5+h.wl*15});
+const itemTxt=it=>'<b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+" "+it.n+"</b> "+(it.t==="w"?"⚔️+":"🛡️+")+it.v;
+function gainXp(h,x){
+  if(h.lvl>=100)return 0;
+  let up=0;h.xp+=x;
+  while(h.lvl<100&&h.xp>=need(h.lvl)){h.xp-=need(h.lvl);h.lvl++;h.maxHp+=6;h.atk+=1;if(h.lvl%5===0)h.def+=1;up++;}
+  if(h.lvl>=100)h.xp=0;
+  if(up)h.hp=h.maxHp;
+  return up;
+}
+function levelTo(h,L){h.lvl=L;h.maxHp+=6*(L-1);h.atk+=L-1;h.def+=Math.floor(L/5);h.hp=h.maxHp;}
+function drop(){
+  const k=s.stage/20,r=Math.random()<.04+k/400?3:Math.random()<.15+k/200?2:Math.random()<.45?1:0,w=Math.random()<.5;
+  const it={t:w?"w":"a",r,v:Math.round((4+s.stage**.6)*RAR[r][2]*(w?1:.8)),n:(w?LW:LA)[rnd(0,3)]};
+  s.inv.push(it);return it;
+}
+const dk=o=>{const d=new Date();d.setDate(d.getDate()+o);return d.toLocaleDateString("sv");};
+const dailyDay=()=>m.daily.d===dk(0)?0:(m.daily.d===dk(-1)?m.daily.n%7+1:1);
+const dRew=n=>({g:100*n*(1+Math.floor(s.stage/10)),f:n+1,p:n%2,cw:n===3?1:0,cg:n===7?2:n>=5?1:0});
+
+const fig=svgStr=>'<span class="fig">'+svgStr+"</span>";
+let en,logs=[],teamKey="",lastEn=null,lastZi=-1,enDelay=300,animMs=0,busyUntil=0;
+function drawTeam(){
+  const t=$("team"),key=s.heroes.map(x=>x.cls).join(",");
+  if(key!==teamKey){
+    teamKey=key;
+    t.innerHTML=s.heroes.map((x,i)=>'<div class="sp" data-i="'+i+'" id="h'+i+'"><div class="em"><i class="shd"></i>'+fig(HERO[x.cls]())+"<u></u></div>"+'<div class="hpb"><i></i></div><small></small></div>').join("");
+    try{[...t.children].forEach(d=>d.animate([{transform:"translateY(40px)"},{transform:"none"}],{duration:380}));}catch(e){}
+  }
+  s.heroes.forEach((x,i)=>{
+    const d=t.children[i];if(!d||!d.querySelector)return;
+    d.className="sp"+(i===s.sel?" sel":"")+(x.cls==="assassin"?" leg":"")+(x.arm>=6?" amy":x.arm>=5?" aleg":"")+(x.hp<=0?" dead":"");
+    d.querySelector("u").textContent=x.hun<25?"🍖":"";
+    d.querySelector(".hpb i").style.width=pc(x.hp,x.maxHp)+"%";
+    d.querySelector("small").textContent="Ур. "+x.lvl;
+  });
+}
+function deathGhost(){
+  try{
+    const f=$("en"),r=f.getBoundingClientRect(),q=$("scene").getBoundingClientRect(),g=document.createElement("div");
+    g.className="em ghost";g.innerHTML=f.innerHTML;
+    g.style.cssText="position:absolute;left:"+(r.left-q.left)+"px;top:"+(r.top-q.top)+"px;width:"+r.width+"px;height:"+r.height+"px";
+    $("scene").appendChild(g);
+    g.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(34px) rotate(28deg) scale(.7)"}],{duration:650,delay:300,easing:"ease-in",fill:"forwards"}).onfinish=()=>g.remove();
+    setTimeout(()=>g.remove(),1300);
+  }catch(e){}
+}
+function choreo(att,strikes,skI,pops,killed){
+  const T=450,G=70,STEP=520,hitsEnd=T+Math.max(0,att.length-1)*G,base=hitsEnd-100;
+  let kEn=0,kE=0;
+  try{
+    const f=$("en").getBoundingClientRect();
+    att.forEach((hi,k)=>{
+      const d=$("h"+hi);if(!d||!d.animate)return;
+      const r=d.getBoundingClientRect(),big=hi===skI;
+      const dx=((f.left+f.width/2)-(r.left+r.width/2))*.55,dy=(f.top+f.height*.8-(r.top+r.height*.5))*.78;
+      d.animate([{transform:"none",zIndex:5},{transform:"translate("+dx+"px,"+dy+"px) scale("+(big?1.45:1.15)+")",zIndex:5,offset:.45},{transform:"none",zIndex:5}],{duration:T,delay:k*G,easing:"ease-in-out"});
+      if(!killed)setTimeout(()=>{try{
+        $("en").animate([{transform:"none"},{transform:"translateY(-10px) rotate(4deg)"},{transform:"none"}],{duration:170});
+        $("enf").animate([{filter:"brightness(2.4) saturate(.3)"},{filter:"brightness(1)"}],{duration:220});
+      }catch(e){}},T*.45+k*G);
+    });
+    if(!killed)strikes.forEach((st,j)=>{
+      const d=$("h"+st.i);if(!d||!d.animate)return;
+      const at=base+j*STEP,r=d.getBoundingClientRect();
+      const dx=((r.left+r.width/2)-(f.left+f.width/2))*.7,dy=(r.top-f.top)*.6;
+      $("en").animate([{transform:"none",zIndex:5},{transform:"translate("+dx+"px,"+dy+"px) scale(1.1)",zIndex:5,offset:.45},{transform:"none",zIndex:5}],{duration:T,delay:at,easing:"ease-in-out"});
+      setTimeout(()=>{try{
+        if(st.miss)d.animate([{transform:"none"},{transform:"translateX(-30px)",opacity:.45},{transform:"none"}],{duration:320});
+        else{
+          d.animate([{transform:"none"},{transform:"translateY(10px)"},{transform:"none"}],{duration:230});
+          d.querySelector(".fig").animate([{filter:"brightness(2) sepia(1) saturate(6) hue-rotate(-40deg)"},{filter:"brightness(1)"}],{duration:280});
+        }
+      }catch(e){}},at+T*.45);
+    });
+  }catch(e){}
+  pops.forEach(p=>{
+    let dl=350;
+    if(p[2]==="s")dl=0;
+    else if(p[0]==="en")dl=T*.45+(kEn++)*G;
+    else if(p[2]==="e"||p[1]==="мимо")dl=base+(kE++)*STEP+T*.45;
+    setTimeout(()=>pop(p[0],p[1],p[2]),dl);
+  });
+  animMs=Math.min(1700,Math.max(450,killed?hitsEnd:base+strikes.length*STEP+T*.6));
+}
+function log(t){logs.unshift(t);logs.length=Math.min(logs.length,2);$("log").innerHTML=logs.map(x=>"<div>"+x+"</div>").join("");}
+function pop(id,txt,cls){try{const e=$(id==="en"?"foe":id),sc=$("scene"),r=e.getBoundingClientRect(),q=sc.getBoundingClientRect(),p=document.createElement("div");p.className="pop "+(cls||"");p.textContent=txt;p.style.left=(r.left-q.left+r.width/2)+"px";p.style.top=(r.top-q.top+(id==="en"?r.height*.3:0))+"px";sc.appendChild(p);setTimeout(()=>p.remove(),900);}catch(e){}}
+function spawn(){
+  const st=s.stage,zi=Math.floor((st-1)/20)%ZN.length,z=ZN[zi],boss=st%20===0,n=Math.max(1,s.heroes.length),mo=z.m[(st-1)%z.m.length];
+  let hp=Math.round((25+10*st**.85)*(boss?3:1)*(1+.7*(n-1)));
+  let atk=Math.round((4+1.2*st**.65)*(boss?1.5:1)),reward=Math.round((6+3*st**.85)*(boss?5:1));
+  let art=boss?DRG[zi]():MOB[mo[0]](),name=boss?"Босс: "+z.d:mo[1],ab=boss?z.ab:{};
+  if(st>=MAXST){hp=FINAL_HP;atk=Math.round(atk*1.3);art=GOLD();name="Мифический золотой дракон";ab={arm:.8,dbl:.3,rage:3};}
+  en={art,name,hp,max:hp,atk,reward,ab,n:0,boss,z,zi};
+}
+function draw(){
+  const z=en.z,h=sel(),dd=dailyDay();
+  $("stage").textContent=s.stage+"/"+MAXST;$("gold").textContent=s.gold;$("cr").textContent=m.cr;$("chn").textContent=s.cw+s.cg;
+  $("bGift").style.display=dd?"":"none";
+  if(en.zi!==lastZi){lastZi=en.zi;$("bg").innerHTML=BG[en.zi]();}
+  $("zone").textContent=z.n;
+  if(en!==lastEn){lastEn=en;$("enf").innerHTML=en.art;$("foe").className=en.big||en.boss?"big":"";const E=$("en"),dl=enDelay;enDelay=300;E.style.visibility="hidden";setTimeout(()=>{E.style.visibility="";try{E.animate([{transform:"translateY(-110px) scale(.85)"},{transform:"none"}],{duration:450,easing:"ease-out"});}catch(x){}},dl);}$("ename").textContent=en.name;$("eab").textContent=abText(en.ab);
+  $("ebar").style.width=pc(en.hp,en.max)+"%";
+  drawTeam();
+  $("npot").textContent=s.pot;$("nfood").textContent=s.food;
+  $("bFeed").disabled=!(s.food>0&&s.heroes.some(x=>x.hun<=70));
+  if(!h){$("info").innerHTML="";$("bPot").disabled=true;$("bSkill").disabled=true;$("skn").textContent="";return;}
+  const cl=CL[h.cls];
+  $("info").innerHTML="<b>"+cl.i+" "+cl.n+"</b> · Ур. "+h.lvl+" · ❤️ "+Math.max(0,Math.ceil(h.hp))+"/"+h.maxHp+" · ⚔️ "+A(h)+" 🛡️ "+D(h)+" · 🍖 "+Math.ceil(h.hun)+"%<br>✨ "+cl.sk+(h.cd>0?" — через "+h.cd:" — готов")+'<div class="xp"><i style="width:'+(h.lvl>=100?100:pc(h.xp,need(h.lvl)))+'%"></i></div>';
+  $("bPot").disabled=!(s.pot>0&&h.hp<h.maxHp);
+  $("bSkill").disabled=h.hp<=0||h.cd>0;$("skn").textContent=h.cd>0?h.cd:"готов";
+}
+function win(){
+  const boss=en.boss,xp=4+Math.round(3*s.stage**.85);
+  s.gold+=en.reward;let up=0;
+  s.heroes.forEach(h=>{h.hp=h.hp>0?Math.min(h.maxHp,h.hp+10):Math.ceil(h.maxHp*.25);up+=gainXp(h,xp)?1:0;});
+  let t="🏆 "+en.name+" повержен! +"+en.reward+" 💰 +"+xp+" ✨"+(up?" 🆙":"");
+  if(boss){
+    s.cg++;t+=" 🟨 сундук!";
+    if(s.stage>m.boss){m.boss=s.stage;const c=20+Math.floor(s.stage/20)*2;m.cr+=c;t+=" +"+c+" 💎";}
+    const it=drop();t+="<br>🎁 Лут: "+itemTxt(it);
+  }else if(Math.random()<.12){s.cw++;t+=" 🟫 сундук!";}
+  log(t);buzz(boss?"heavy":"light");
+  if(s.stage>=MAXST)log("🏁 ПОБЕДА! Ты прошёл все 10000 этапов!");else s.stage++;
+  spawn();
+}
+function attack(sk){
+  const live=s.heroes.filter(h=>h.hp>0);
+  if(!live.length)return;
+  const skH=sk&&sk.hp>0&&sk.cd<=0?sk:null,pops=[],att=[],strikes=[],reduce=1-(en.ab.arm||0);
+  let skI=-1;
+  let stun=false,shield=false,inv=null,total=0,tags="";
+  for(const h of live){
+    const c=h.cls,x=X(h),use=h===skH,hi=s.heroes.indexOf(h);att.push(hi);
+    let d=Math.round(A(h)*(c==="medic"?.6:1))+rnd(0,4),crit=Math.random()<(c==="assassin"?.35+h.wl*.005*x:c==="archer"?.2:.15);
+    if(crit)d=Math.round(d*(c==="assassin"?2.5:2));
+    if(c==="mage"){h.t=(h.t||0)+1;if(h.t%3===0){d=Math.round((A(h)+rnd(2,6))*(2.5+h.wl*.05*x));stun=true;tags+="🔥";}}
+    if(c==="archer"&&Math.random()<.3+h.wl*.01*x){d+=A(h)+rnd(0,4);tags+="🏹";}
+    if(use){
+      tags+="✨";h.cd=CL[c].cd+1;crit=true;skI=hi;pops.push(["h"+hi,"✨","s"]);
+      if(c==="warrior"){d*=3;shield=true;}
+      else if(c==="mage"){d=Math.round((A(h)+rnd(2,6))*4);stun=true;}
+      else if(c==="archer"){d=Math.round(A(h)*4.5)+rnd(0,6);}
+      else if(c==="assassin"){d=Math.round(A(h)*4)+rnd(0,6);inv=h;}
+      else{s.heroes.forEach((a,k)=>{if(a.hp<=0)a.hp=Math.ceil(a.maxHp*.3);else a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*.35));pops.push(["h"+k,"💚","h"]);});}
+    }
+    if(c==="medic"&&!use){
+      const w=s.heroes.filter(a=>a.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+      if(w&&w.hp<w.maxHp){const g=Math.round(w.maxHp*.08+A(h)*.5);w.hp=Math.min(w.maxHp,w.hp+g);pops.push(["h"+s.heroes.indexOf(w),"+"+g,"h"]);}
+    }
+    d=Math.max(1,Math.round(d*((use&&c==="archer")?1:reduce)));
+    en.hp-=d;total+=d;pops.push(["en",d,crit?"c":""]);
+    if(en.hp<=0)break;
+  }
+  buzz("light");
+  const killed=en.hp<=0;
+  if(killed){deathGhost();enDelay=800;win();}
+  else{
+    let line="⚔️ Урон: "+total+" "+tags;
+    if(stun){line+=" · 😵 враг оглушён";pops.push(["en","💫",""]);}
+    else{
+      const hits=1+(Math.random()<(en.ab.dbl||0)?1:0);
+      for(let i=0;i<hits;i++){
+        const al=s.heroes.filter(h=>h.hp>0&&h!==inv);if(!al.length)break;
+        const h=al[rnd(0,al.length-1)],hi=s.heroes.indexOf(h);en.n++;strikes.push({i:hi,miss:false});
+        if(h.cls==="assassin"&&Math.random()<.2+h.wl*.005*X(h)){strikes[strikes.length-1].miss=true;pops.push(["h"+hi,"мимо","h"]);continue;}
+        let dm=Math.round(en.atk*100/(100+D(h)*3))+rnd(-1,2);
+        if(en.ab.rage&&en.n%en.ab.rage===0){dm*=2;line+=" · 🔥 ярость!";}
+        if(shield)dm=Math.round(dm/2);
+        dm=Math.max(1,dm);h.hp-=dm;pops.push(["h"+hi,"-"+dm,"e"]);
+      }
+    }
+    log(line);
+    if(!s.heroes.some(h=>h.hp>0)){
+      s.gold=Math.floor(s.gold/2);s.stage=Math.max(1,s.stage-2);s.heroes.forEach(h=>{h.hp=h.maxHp;h.hun=Math.max(h.hun,40);});spawn();
+      log("☠️ Отряд пал, но очнулся у костра. Золота стало меньше.");buzz("heavy");
+    }
+  }
+  s.heroes.forEach(h=>{if(h.hp>0){h.cd=Math.max(0,h.cd-1);h.hun=Math.max(0,h.hun-.35);if(h.hun<=0)h.hp=Math.max(1,h.hp-Math.ceil(h.maxHp*.02));}});
+  save();draw();choreo(att,strikes,skI,pops,killed);
+}
+function openChest(){
+  const g=s.cg>0;if(g)s.cg--;else if(s.cw>0)s.cw--;else return;
+  const k=g?3:1,gold=rnd(10,30)*k*(1+Math.floor(s.stage/10));
+  s.gold+=gold;let t="📦 "+(g?"Золотой":"Деревянный")+" сундук: +"+gold+" 💰";
+  if(Math.random()<(g?.8:.3)){const p=g?2:1;s.pot+=p;t+=" +"+p+" 🧪";}
+  if(g){s.food+=2;t+=" +2 🍖";}
+  const xp=rnd(5,15)*k*(1+Math.floor(s.stage/20));s.heroes.forEach(h=>gainXp(h,xp));
+  log(t+" +"+xp+" ✨ каждому");
+}
+function pick(c){
+  if(s.heroes.some(h=>h.cls===c))return;
+  const h=mk(c);
+  if(s.heroes.length)levelTo(h,Math.max(1,Math.max(...s.heroes.map(x=>x.lvl))-5));
+  s.heroes.push(h);s.sel=s.heroes.length-1;
+  $("sheet").hidden=true;spawn();
+  log(CL[c].i+" "+CL[c].n+" присоединился к отряду!");save();draw();
+}
+// ---------- меню ----------
+let tab="shop";
+const row=(t,sub,btn,a,dis,i)=>'<div class="r"><div>'+t+(sub?"<small>"+sub+"</small>":"")+"</div>"+(btn?'<button data-a="'+a+'"'+(i!==undefined?' data-i="'+i+'"':"")+(dis?" disabled":"")+">"+btn+"</button>":"")+"</div>";
+function openSheet(t){tab=t;$("sheet").hidden=false;render();}
+function render(){
+  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["gift","🎁 Награды"]];
+  let b="";
+  if(tab==="pick"){
+    b=Object.keys(CL).map(c=>{const d=CL[c],inP=s.heroes.some(x=>x.cls===c),lock=c==="assassin"&&!m.unl.assassin;return row(d.i+" "+d.n,d.d,inP?"в отряде":lock?"🔒 "+ASS+" 💎":"Выбрать","pick",inP,c);}).join("");
+  }else if(tab==="shop"&&h){
+    const c=costs(h),nx=ARM[h.arm+1],cl=CL[h.cls];
+    b=row("Герой: "+cl.i+" "+cl.n,"выбери героя в отряде, кого улучшать")+
+      row(wp(h)[0]+" "+wp(h)[1]+" ур. "+h.wl+"/20","+"+wp(h)[2]+" атаки за уровень",h.wl>=20?"МАКС":"💰 "+c.sword,"upW",h.wl>=20||s.gold<c.sword)+
+      row("🛡️ "+(nx?nx[0]:"Броня: максимум"),nx?"защита +"+nx[1]:"сейчас: "+ARM[h.arm][0],nx?(nx[2]?"💰 "+nx[2]:"💎 "+nx[3]):"","upA",!nx||(nx[2]?s.gold<nx[2]:m.cr<nx[3]))+
+      row(cl.x[0]+" "+cl.x[1],"эксклюзивное оружие",m.ex[h.cls]?"✅":"💎 "+EXC,"ex",!!m.ex[h.cls]||m.cr<EXC)+
+      row("🧪 Зелье","лечит 50% или воскрешает","💰 "+c.pot,"bpot",s.gold<c.pot)+
+      row("🍖 Еда ×3","утоляет голод отряда","💰 "+3*c.food,"bfood",s.gold<3*c.food);
+  }else if(tab==="bag"&&h){
+    b=row("Надето ("+CL[h.cls].i+")","оружие: "+(h.lw?itemTxt(h.lw):"—")+"<br>броня: "+(h.la?itemTxt(h.la):"—"))+
+      (s.inv.length?s.inv.map((it,i)=>'<div class="r"><div>'+itemTxt(it)+'</div><span><button data-a="equip" data-i="'+i+'">Надеть</button> <button data-a="sell" data-i="'+i+'">💰'+it.v*6+"</button></span></div>").join(""):row("Рюкзак пуст","лут падает с драконов-боссов"));
+  }else if(tab==="team"){
+    b=s.heroes.map((x,i)=>row(CL[x.cls].i+" "+CL[x.cls].n+" · Ур. "+x.lvl,"❤️ "+Math.ceil(x.hp)+"/"+x.maxHp+" · 🍖 "+Math.ceil(x.hun)+"% · 🛡️ "+ARM[x.arm][0],i===s.sel?"выбран":"Выбрать","sel",i===s.sel,i)).join("")+
+      (s.heroes.length<m.slots?row("➕ Нанять героя","свободных ячеек: "+(m.slots-s.heroes.length),"Выбрать","recruit"):m.slots<MAXS?row("🔓 Ячейка героя","ещё один герой в отряд","💎 "+SLOT,"slot",m.cr<SLOT):row("Отряд полон",""))+
+      row("🔄 Новая игра","кристаллы, ячейки и эксклюзивы сохранятся","Начать","newgame");
+  }else if(tab==="gift"){
+    const n=dailyDay(),r=dRew(n||1);
+    b=(n?row("🎁 Ежедневная награда, день "+n+" из 7","💰 "+r.g+" · 🍖 "+r.f+(r.p?" · 🧪":"")+(r.cw?" · 🟫":"")+(r.cg?" · 🟨×"+r.cg:""),"Забрать","claim"):row("🎁 Награда получена","приходи завтра, серия дней даёт больше"))+
+      row("📦 Сундуки","🟫 "+s.cw+" · 🟨 "+s.cg,"Открыть","chest",s.cw+s.cg<1);
+  }
+  const head=tab==="pick"?(s.heroes.length?'<div class="tabs"><button data-a="close">✕ Закрыть</button></div>':'<div class="tabs"><b style="padding:6px 8px">Выбери героя</b></div>'):'<div class="tabs">'+T.map(t=>'<button data-t="'+t[0]+'"'+(t[0]===tab?' class="on"':"")+">"+t[1]+"</button>").join("")+'<button data-a="close">✕</button></div>';
+  $("sh").innerHTML=head+'<div class="body">'+b+"</div>";
+}
+const ACT={
+  close(){if(s.heroes.length)$("sheet").hidden=true;},
+  pick(c){
+    if(c==="assassin"&&!m.unl.assassin){if(m.cr<ASS)return note("Нужно "+ASS+" 💎, у тебя "+m.cr+". Кристаллы дают драконы-боссы.");m.cr-=ASS;m.unl.assassin=true;}
+    pick(c);
+  },
+  sel(i){s.sel=+i;},
+  recruit(){tab="pick";},
+  slot(){if(m.slots>=MAXS||m.cr<SLOT)return;m.cr-=SLOT;m.slots++;log("🔓 Открыта ячейка героя!");},
+  upW(){const h=sel(),c=costs(h).sword;if(h.wl>=20||s.gold<c)return;s.gold-=c;h.wl++;log(wp(h)[0]+" "+wp(h)[1]+" улучшен до ур. "+h.wl);},
+  upA(){const h=sel(),nx=ARM[h.arm+1];if(!nx)return;if(nx[2]){if(s.gold<nx[2])return;s.gold-=nx[2];}else{if(m.cr<nx[3])return;m.cr-=nx[3];}h.arm++;log("🛡️ "+CL[h.cls].i+" получил: "+nx[0]);},
+  ex(){const h=sel();if(m.ex[h.cls]||m.cr<EXC)return;m.cr-=EXC;m.ex[h.cls]=true;log("💎 Эксклюзив: "+CL[h.cls].x[1]+"!");},
+  bpot(){const c=costs(sel()).pot;if(s.gold<c)return;s.gold-=c;s.pot++;},
+  bfood(){const c=costs(sel()).food*3;if(s.gold<c)return;s.gold-=c;s.food+=3;},
+  pot(){const h=sel();if(!h||s.pot<1||h.hp>=h.maxHp)return;s.pot--;const was=h.hp<=0;h.hp=Math.min(h.maxHp,Math.max(h.hp,0)+Math.ceil(h.maxHp/2));log(was?"✨ "+CL[h.cls].i+" воскрешён зельем!":"🧪 "+CL[h.cls].i+" выпил зелье.");pop("h"+s.sel,"💚","h");},
+  feed(){let n=0;s.heroes.forEach(h=>{if(h.hun<=70&&s.food>0){s.food--;h.hun=Math.min(100,h.hun+40);n++;}});if(n)log("🍖 Накормлено героев: "+n);},
+  equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=it.t==="w"?"lw":"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
+  sell(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);s.gold+=it.v*6;},
+  claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");},
+  chest(){openChest();},
+  newgame(){
+    const q="Начать заново? Прогресс забега сбросится, кристаллы, ячейки и эксклюзивное оружие сохранятся.";
+    const go=()=>{s={stage:1,gold:0,food:5,pot:1,cw:0,cg:0,sel:0,heroes:[],inv:[]};logs=[];save();spawn();draw();openSheet("pick");};
+    if(tg&&tg.showConfirm)tg.showConfirm(q,ok=>{if(ok)go();});else if(confirm(q))go();
+  }
+};
+function act(a,i){
+  if(!ACT[a])return;
+  ACT[a](i);save();draw();
+  if(!$("sheet").hidden)render();
+}
+$("sheet").onclick=e=>{
+  if(e.target===$("sheet")){ACT.close();return;}
+  const b=e.target.closest&&e.target.closest("button");if(!b)return;
+  if(b.dataset.t){tab=b.dataset.t;render();return;}
+  act(b.dataset.a,b.dataset.i);
+};
+$("team").onclick=e=>{const d=e.target.closest&&e.target.closest(".sp");if(d){s.sel=+d.dataset.i;draw();}};
+const swing=k=>{if(Date.now()<busyUntil)return;attack(k);busyUntil=Date.now()+animMs;};
+$("bAtk").onclick=()=>swing(null);
+$("bSkill").onclick=()=>swing(sel());
+$("bPot").onclick=()=>act("pot");
+$("bFeed").onclick=()=>act("feed");
+$("bCh").onclick=()=>s.cw+s.cg?act("chest"):openSheet("gift");
+$("bGift").onclick=()=>openSheet("gift");
+$("bMenu").onclick=()=>openSheet("shop");
+spawn();
+if(s.heroes.length){log("🌑 С возвращением в Тёмные земли!");draw();}
+else{log("🌑 Добро пожаловать в Тёмные земли, герой!");draw();openSheet("pick");}
+</script>
+</body>
+</html>
