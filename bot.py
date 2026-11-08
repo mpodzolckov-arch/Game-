@@ -17,7 +17,7 @@ from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
-from aiogram.types import BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonWebApp, Message, WebAppInfo
+from aiogram.types import BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo
 import aiohttp
 from aiohttp import web
 
@@ -585,6 +585,111 @@ def api(fn):
     return w
 
 
+# ---------- магазин за Telegram Stars (XTR) ----------
+# id: (цена в ⭐, название, описание)
+SHOP = {
+    "cr1": (25, "💎 50 кристаллов", "Небольшой запас кристаллов"),
+    "cr2": (100, "💎 230 кристаллов", "Выгодный набор кристаллов"),
+    "cr3": (400, "💎 1000 кристаллов", "Большой запас кристаллов"),
+    "egg": (40, "🥚 3 яйца питомцев", "Три яйца для питомцев"),
+    "pass": (150, "🎫 Пропуск героя, 30 дней", "+10% золота и 25 💎 каждый день в течение 30 дней"),
+}
+PASS_DAYS = 30
+PASS_DAILY = 25
+
+
+def shop_day():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+
+async def shop_load(uid):
+    d = await kv_get("shop:%d" % uid)
+    d = d if isinstance(d, dict) else {}
+    d.setdefault("pend", [])
+    d.setdefault("seen", [])
+    d.setdefault("pass", 0)
+    d.setdefault("dc", "")
+    return d
+
+
+async def shop_credit(uid, item, charge_id, stars):
+    """Записывает оплаченную покупку (один раз на платёж). True — записано."""
+    if item not in SHOP or SHOP[item][0] != stars:
+        return False
+    async with kv_lock:
+        d = await shop_load(uid)
+        if charge_id in d["seen"]:
+            return False
+        d["seen"] = (d["seen"] + [charge_id])[-300:]
+        if item == "pass":
+            d["pass"] = max(d["pass"], time.time()) + PASS_DAYS * 86400
+        else:
+            d["pend"].append(item)
+        await kv_put("shop:%d" % uid, d)
+    return True
+
+
+@dp.pre_checkout_query()
+async def pre_checkout(q: PreCheckoutQuery):
+    try:
+        uid, item, _ = q.invoice_payload.split(":", 2)
+        ok = int(uid) == q.from_user.id and item in SHOP and SHOP[item][0] == q.total_amount and q.currency == "XTR"
+    except Exception:
+        ok = False
+    await q.answer(ok=ok, error_message=None if ok else "Покупка недоступна, попробуй ещё раз.")
+
+
+@dp.message(F.successful_payment)
+async def paid(m: Message):
+    sp = m.successful_payment
+    try:
+        uid, item, _ = sp.invoice_payload.split(":", 2)
+        if int(uid) != m.from_user.id:
+            return
+        ok = await shop_credit(int(uid), item, sp.telegram_payment_charge_id, sp.total_amount)
+    except Exception as e:
+        print("paid error", e)
+        return
+    if ok:
+        await m.answer("✅ Спасибо за покупку: %s!\nОткрой игру — награда уже ждёт тебя." % SHOP[item][1], reply_markup=play_kb())
+
+
+@api
+async def shop_invoice(uid, name, body):
+    item = str(body.get("item", ""))
+    if item not in SHOP:
+        raise web.HTTPBadRequest()
+    price, title, desc = SHOP[item]
+    url = await bot.create_invoice_link(title=title, description=desc, payload="%d:%s:%d" % (uid, item, int(time.time())),
+                                        provider_token="", currency="XTR", prices=[LabeledPrice(label=title, amount=price)])
+    return {"url": url}
+
+
+def shop_out(d):
+    act = d["pass"] > time.time()
+    return {"pend": d["pend"], "pass": int(d["pass"]) if act else 0, "can": bool(act and d["dc"] != shop_day())}
+
+
+@api
+async def shop_state(uid, name, body):
+    return shop_out(await shop_load(uid))
+
+
+@api
+async def shop_claim(uid, name, body):
+    d = await shop_load(uid)
+    items, d["pend"] = d["pend"], []
+    daily = 0
+    if body.get("daily") and d["pass"] > time.time() and d["dc"] != shop_day():
+        d["dc"] = shop_day()
+        daily = PASS_DAILY
+    if items or daily:
+        await kv_put("shop:%d" % uid, d)
+    out = shop_out(d)
+    out.update({"items": items, "daily": daily})
+    return out
+
+
 def g_perk(n):
     return 15 if n >= 10 else 10 if n >= 6 else 5 if n >= 3 else 0
 
@@ -823,6 +928,7 @@ async def main():
     app.router.add_post("/arena/fight", arena_fight)
     app.router.add_post("/arena/result", arena_result)
     for p, h in (("/guild/me", guild_me), ("/guild/create", guild_create), ("/guild/join", guild_join), ("/guild/leave", guild_leave),
+                 ("/shop/invoice", shop_invoice), ("/shop/state", shop_state), ("/shop/claim", shop_claim),
                  ("/wb/state", wb_state_api), ("/wb/start", wb_start), ("/wb/hit", wb_hit), ("/wb/claim", wb_claim)):
         app.router.add_post(p, h)
         app.router.add_route("OPTIONS", p, health)
