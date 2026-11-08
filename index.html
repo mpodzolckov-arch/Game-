@@ -156,6 +156,14 @@ html,body{background:#0a0710}
 .pi svg{width:100%;height:100%}
 #pet .fig svg{height:calc(clamp(46px,9dvh,70px)*var(--ps,1))}
 #pet.p5 .fig{filter:drop-shadow(0 0 8px #ffd34a) drop-shadow(0 0 3px #fff2b0)}
+/* окно меню не «плавает»: фиксированный размер и своя прокрутка */
+#sh{height:80%;max-height:80%;overflow:hidden}
+.tabs{flex:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#sheet{overscroll-behavior:contain}
+#side{position:absolute;right:6px;top:64px;z-index:20;display:flex;flex-direction:column;gap:7px}
+#side button{width:38px;height:38px;border-radius:50%;padding:0;font-size:18px;line-height:1;background:radial-gradient(circle at 50% 20%,#44385a,#1b1526 75%);border:2px solid var(--gd);box-shadow:0 2px 0 #000,0 0 8px #000a}
+#side button:active{transform:translateY(2px)}
 </style>
 </head>
 <body>
@@ -165,7 +173,7 @@ html,body{background:#0a0710}
     <div id="bg"></div><div id="zone"></div>
     <div id="foe"><div id="ename"></div><div class="hpb"><i id="ebar"></i></div><div id="eab"></div><div class="em" id="en"><i class="shd"></i><span class="fig" id="enf"></span></div></div>
     <div id="log"></div>
-    <div id="team"></div><div id="pet" style="display:none"><span class="fig"></span><small></small></div>
+    <div id="team"></div><div id="pet" style="display:none"><span class="fig"></span><small></small></div><div id="side"><button data-w="tower">🗼</button><button data-w="forge">⚒</button><button data-w="guild">🏰</button></div>
   </div>
   <div id="info"></div>
   <div id="bar">
@@ -2461,7 +2469,7 @@ function pick(c){
   log(CL[c].i+" "+CL[c].n+(s.heroes.includes(h)?" присоединился к отряду!":" ждёт в запасе."));notify("hero","👥 "+CL[c].n+" присоединился к отряду!");save();draw();
 }
 // ---------- меню ----------
-let tab="shop",tutI=0;
+let tab="shop",tutI=0,lastTab="";
 const TUT=[["⚔️ Бой","Жми большую кнопку ⚔️ — отряд бьёт врага. Кнопка ✨ запускает навык героя, когда он готов. Кнопка 🔁 включает автобой."],["💰 Развитие","В «☰ → Лавка» улучшай оружие, броню и навыки героя. Зелье 🧪 лечит и воскрешает, еда 🍖 кормит отряд."],["📦 Сундуки и награды","Сундуки дают скины. Золото меняется на 💎 во вкладке «Сундуки». В «Цели» ждут награды, в «Топ» — таблица игроков."]];
 const row=(t,sub,btn,a,dis,i)=>'<div class="r"><div>'+t+(sub?"<small>"+sub+"</small>":"")+"</div>"+(btn?'<button data-a="'+a+'"'+(i!==undefined?' data-i="'+i+'"':"")+(dis?" disabled":"")+">"+btn+"</button>":"")+"</div>";
 const rowB=(t,sub,bs)=>'<div class="r"><div>'+t+(sub?"<small>"+sub+"</small>":"")+'</div><span class="bs">'+bs.map(b=>'<button class="sm" data-a="'+b[1]+'"'+(b[2]!==undefined?' data-i="'+b[2]+'"':"")+(b[3]?" disabled":"")+">"+b[0]+"</button>").join("")+"</span></div>";
@@ -2483,7 +2491,7 @@ function skinRows(h){
   return o;
 }
 function render(){
-  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["guild","🏰 Гильдия"],["wb","🌍 Мировой босс"],["tower","🗼 Башня"],["forge","⚒ Кузница"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
+  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["wb","🌍 Мировой босс"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
   let b="";
   if(tab==="pick"){
     const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
@@ -2567,8 +2575,11 @@ function render(){
     const n=dailyDay(),r=dRew(n||1);
     b=(n?row("🎁 Ежедневная награда, день "+n+" из 7","💰 "+r.g+" · 🍖 "+r.f+(r.p?" · 🧪":"")+(r.cw?" · 🟫":"")+(r.cg?" · 🟨×"+r.cg:""),"Забрать","claim"):row("🎁 Награда получена","приходи завтра, серия дней даёт больше"))+'<div class="cht">⚙️ Настройки</div>'+'<div class="cht">👥 Друзья</div>'+row("Пригласи друга","тебе +20 💎 за каждого, другу +10 💎 · приглашено: "+(m.inv|0),tg?"Позвать":"","invite")+row("🗑 Начать с нуля","удалит весь прогресс, героев и достижения","Сбросить","reset")+row("⏩ Быстрые анимации",m.fast?"включены: бои идут быстрее":"выключены: красивые длинные анимации",m.fast?"Выключить":"Включить","fast")+row("🔊 Звук",m.mute?"выключен":"включён",m.mute?"Включить":"Выключить","snd")+row("☁️ Облако Telegram",CS?"прогресс копируется в облако и подхватывается на другом устройстве":"доступно только внутри Telegram","","");
   }
-  const head=tab==="bt"?'<div class="tabs"><b style="padding:6px 8px">⚔️ Арена</b></div>':tab==="tut"?'<div class="tabs"><b style="padding:6px 8px">Как играть</b></div>':tab==="rename"?'<div class="tabs"><button data-t="team">← Назад</button></div>':tab==="pick"?(s.heroes.length?'<div class="tabs"><button data-a="close">✕ Закрыть</button></div>':'<div class="tabs"><b style="padding:6px 8px">Выбери героя</b></div>'):'<div class="tabs">'+T.map(t=>'<button data-t="'+t[0]+'"'+(t[0]===tab?' class="on"':"")+">"+t[1]+"</button>").join("")+'<button data-a="close">✕</button></div>';
-  $("sh").innerHTML=head+'<div class="body">'+b+"</div>";
+  const WIN={tower:"🗼 Башня испытаний",forge:"⚒ Кузница",guild:"🏰 Гильдия"};
+  const head=WIN[tab]?'<div class="tabs"><b style="padding:6px 8px;font-size:15px;color:#ffd98a;flex:1">'+WIN[tab]+'</b><button data-a="close">✕</button></div>':tab==="bt"?'<div class="tabs"><b style="padding:6px 8px">⚔️ Арена</b></div>':tab==="tut"?'<div class="tabs"><b style="padding:6px 8px">Как играть</b></div>':tab==="rename"?'<div class="tabs"><button data-t="team">← Назад</button></div>':tab==="pick"?(s.heroes.length?'<div class="tabs"><button data-a="close">✕ Закрыть</button></div>':'<div class="tabs"><b style="padding:6px 8px">Выбери героя</b></div>'):'<div class="tabs">'+T.map(t=>'<button data-t="'+t[0]+'"'+(t[0]===tab?' class="on"':"")+">"+t[1]+"</button>").join("")+'<button data-a="close">✕</button></div>';
+  const sh=$("sh"),ob=sh.querySelector(".body"),ot=sh.querySelector(".tabs"),sy=ob&&lastTab===tab?ob.scrollTop:0,sx=ot&&!WIN[tab]&&!WIN[lastTab]?ot.scrollLeft:0;lastTab=tab;
+  sh.innerHTML=head+'<div class="body">'+b+"</div>";
+  const nb=sh.querySelector(".body"),nt=sh.querySelector(".tabs");if(nb)nb.scrollTop=sy;if(nt){nt.scrollLeft=sx;const on=nt.querySelector(".on");if(on&&!sx&&!WIN[tab]){const x=on.offsetLeft-nt.clientWidth/2+on.offsetWidth/2;if(x>0)nt.scrollLeft=x;}}
 }
 const ACT={
   close(){if(tab==="bt"&&bt&&!bt.done)return;if(s.heroes.length)$("sheet").hidden=true;},
@@ -2647,6 +2658,7 @@ $("bSkill").onclick=()=>swing(sel());
 $("bPot").onclick=()=>act("pot");
 $("bFeed").onclick=()=>act("feed");
 $("bCh").onclick=()=>openSheet("chest");
+$("side").onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(b&&b.dataset.w)openSheet(b.dataset.w);};
 $("bAuto").onclick=()=>{auto=!auto;$("aut").textContent=auto?"вкл":"выкл";$("bAuto").style.background=auto?"#2f8a3e":"";};
 setInterval(()=>{try{
   if(!auto||!$("sheet").hidden||Date.now()<busyUntil||!s.heroes.some(h=>h.hp>0))return;
