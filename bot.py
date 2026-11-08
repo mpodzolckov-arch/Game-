@@ -813,7 +813,7 @@ async def guild_state(gs, uid):
     gid, g = guild_find(gs, uid)
     if g is None:
         top = sorted(gs["g"].items(), key=lambda kv: -kv[1].get("pts", 0))[:15]
-        return {"g": None, "list": [{"id": k, "n": v["name"], "c": len(v["m"]), "p": v.get("pts", 0)} for k, v in top]}
+        return {"g": None, "list": [{"id": k, "n": v["name"], "c": len(v["m"]), "p": v.get("pts", 0), "bk": v.get("bk", 0)} for k, v in top]}
     rows = {int(r["uid"]): r for r in await players_rows(g["m"])}
     mem = []
     for m in g["m"]:
@@ -822,7 +822,9 @@ async def guild_state(gs, uid):
     mem.sort(key=lambda x: -x["s"])
     g["pts"] = sum(x["s"] for x in mem)
     await kv_put("guilds", gs)
-    return {"g": {"id": gid, "n": g["name"], "own": g["o"] == uid, "m": mem, "p": g["pts"], "perk": g_perk(len(g["m"])), "max": GUILD_MAX}}
+    top = sorted(gs["g"].items(), key=lambda kv: (-kv[1].get("bk", 0), -kv[1].get("pts", 0)))[:10]
+    lst = [{"id": k, "n": v["name"], "c": len(v["m"]), "p": v.get("pts", 0), "bk": v.get("bk", 0)} for k, v in top]
+    return {"list": lst, "g": {"id": gid, "n": g["name"], "own": g["o"] == uid, "m": mem, "p": g["pts"], "bk": g.get("bk", 0), "perk": g_perk(len(g["m"])), "max": GUILD_MAX}}
 
 
 @api
@@ -975,6 +977,132 @@ async def wb_claim(uid, name, body):
     return {"ok": 1, "d": p["d"], "killed": y["hp"] <= 0, "rank": wb_rank(y, uid)}
 
 
+# ---------- гильдейский босс ----------
+GB_TRIES = 2
+
+
+def gb_week(off=0):
+    return int((time.time() - 4 * 86400) // 604800) + off
+
+
+def gb_zi(gid, wk):
+    try:
+        return (wk * 5 + int(str(gid).lstrip("g"))) % 12
+    except ValueError:
+        return wk % 12
+
+
+async def gb_doc(gid, g, wk):
+    d = await kv_get("gb:%s:%d" % (gid, wk))
+    if not isinstance(d, dict):
+        mx = 150000 + 100000 * len(g["m"])
+        d = {"hp": mx, "max": mx, "p": {}}
+    return d
+
+
+def gb_rew(dmg):
+    return min(200, 40 + int(dmg) // 2000)
+
+
+async def gb_state(uid, gs):
+    gid, g = guild_find(gs, uid)
+    if g is None:
+        return {"g": 0}
+    wk = gb_week()
+    d = await gb_doc(gid, g, wk)
+    me_ = d["p"].get(str(uid), {})
+    used = me_.get("a", 0) if me_.get("ad") == day_key() else 0
+    top = sorted(d["p"].values(), key=lambda v: -v.get("d", 0))[:10]
+    out = {"g": 1, "name": g["name"], "zi": gb_zi(gid, wk), "hp": d["hp"], "max": d["max"], "att": GB_TRIES - used,
+           "my": me_.get("d", 0), "top": [{"n": v.get("n", "Герой"), "d": v.get("d", 0)} for v in top], "bk": g.get("bk", 0),
+           "left": int(604800 - (time.time() - 4 * 86400) % 604800), "y": None, "cl": bool(me_.get("cl"))}
+    y = await gb_doc(gid, g, wk - 1)
+    yp = y["p"].get(str(uid))
+    if yp and yp.get("d", 0) > 0 and not yp.get("cl") and y["hp"] <= 0:
+        out["y"] = {"d": yp["d"], "cr": gb_rew(yp["d"])}
+    if out["hp"] <= 0 and me_.get("d", 0) > 0 and not me_.get("cl"):
+        out["y"] = {"d": me_["d"], "cr": gb_rew(me_["d"])}
+    return out
+
+
+@api
+async def gb_state_api(uid, name, body):
+    return await gb_state(uid, await guilds_load())
+
+
+@api
+async def gb_start(uid, name, body):
+    gs = await guilds_load()
+    gid, g = guild_find(gs, uid)
+    if g is None:
+        return {"ok": 0, "noguild": 1}
+    wk = gb_week()
+    d = await gb_doc(gid, g, wk)
+    if d["hp"] <= 0:
+        return {"ok": 0, "dead": 1}
+    p = d["p"].setdefault(str(uid), {"n": name, "d": 0, "a": 0})
+    p["n"] = name
+    if p.get("ad") != day_key():
+        p["ad"] = day_key()
+        p["a"] = 0
+    if p["a"] >= GB_TRIES:
+        return {"ok": 0, "limit": 1}
+    p["a"] += 1
+    p["pend"] = 1
+    await kv_put("gb:%s:%d" % (gid, wk), d)
+    return {"ok": 1, "hp": d["hp"], "max": d["max"], "zi": gb_zi(gid, wk)}
+
+
+@api
+async def gb_hit(uid, name, body):
+    gs = await guilds_load()
+    gid, g = guild_find(gs, uid)
+    if g is None:
+        return {"ok": 0}
+    wk = gb_week()
+    d = await gb_doc(gid, g, wk)
+    p = d["p"].get(str(uid))
+    if not p or not p.get("pend"):
+        return {"ok": 0}
+    row = await db_get(uid)
+    best = max(1, (row or {}).get("best", 1))
+    cap = 600 * best + 30000
+    try:
+        dmg = int(body.get("dmg", 0))
+    except (TypeError, ValueError):
+        dmg = 0
+    dmg = max(0, min(dmg, cap, d["hp"]))
+    p["pend"] = 0
+    p["d"] = p.get("d", 0) + dmg
+    was = d["hp"]
+    d["hp"] = max(0, d["hp"] - dmg)
+    await kv_put("gb:%s:%d" % (gid, wk), d)
+    if was > 0 and d["hp"] <= 0:
+        g["bk"] = g.get("bk", 0) + 1
+        await kv_put("guilds", gs)
+    out = await gb_state(uid, gs)
+    out["ok"] = 1
+    out["dealt"] = dmg
+    return out
+
+
+@api
+async def gb_claim(uid, name, body):
+    gs = await guilds_load()
+    gid, g = guild_find(gs, uid)
+    if g is None:
+        return {"ok": 0}
+    for off in (0, -1):
+        wk = gb_week(off)
+        d = await gb_doc(gid, g, wk)
+        p = d["p"].get(str(uid))
+        if d["hp"] <= 0 and p and p.get("d", 0) > 0 and not p.get("cl"):
+            p["cl"] = 1
+            await kv_put("gb:%s:%d" % (gid, wk), d)
+            return {"ok": 1, "d": p["d"], "cr": gb_rew(p["d"]), "cg": 1}
+    return {"ok": 0}
+
+
 @web.middleware
 async def cors(request, handler):
     if request.method == "OPTIONS":
@@ -1024,6 +1152,7 @@ async def main():
     app.router.add_post("/arena/result", arena_result)
     for p, h in (("/guild/me", guild_me), ("/guild/create", guild_create), ("/guild/join", guild_join), ("/guild/leave", guild_leave),
                  ("/arena/claim", arena_claim), ("/shop/invoice", shop_invoice), ("/shop/state", shop_state), ("/shop/claim", shop_claim),
+                 ("/gb/state", gb_state_api), ("/gb/start", gb_start), ("/gb/hit", gb_hit), ("/gb/claim", gb_claim),
                  ("/wb/state", wb_state_api), ("/wb/start", wb_start), ("/wb/hit", wb_hit), ("/wb/claim", wb_claim)):
         app.router.add_post(p, h)
         app.router.add_route("OPTIONS", p, health)

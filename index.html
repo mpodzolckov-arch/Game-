@@ -1558,7 +1558,7 @@ function fetchMe(){try{
   let ref="";try{ref=tg.initDataUnsafe.start_param||"";}catch(e){}
   post("/me",{ref}).then(r=>r.json()).then(d=>{
     if(!d)return;m.inv=d.invites|0;
-    if(d.welcome){m.cr+=d.welcome;log("🎁 Приветственный бонус от друга: +"+d.welcome+" ♦️");}
+    if(d.welcome){m.cr+=d.welcome;m.ch[1]++;log("🎁 Приветственный бонус от друга: +"+d.welcome+" ♦️ и 🟪 эпический сундук");}
     if(d.claim){m.cr+=d.claim;log("👥 Друзья пришли по твоей ссылке: +"+d.claim+" ♦️");SFX.ach();}
     if(d.welcome||d.claim){checkAch();if(typeof save==="function")save();if(!$("sheet").hidden)render();}
   }).catch(()=>{});
@@ -2326,7 +2326,7 @@ function wbReward(d,killed,rank){
 function wbSpawn(){
   const w=s.wb,zi=w.zi%ZN.length,z=ZN[zi],E=Math.max(20,Math.round((m.best|0)*.8));
   const atk=Math.round((5+1.4*E**.7)*Math.min(1,.55+E/45)*1.8);
-  en={art:BOSS[zi](),name:"🌍 "+z.bn,hp:w.hp0,max:w.max0,atk,reward:0,ab:z.ab,n:0,boss:true,z,zi,slow:0,sw:0,burn:0,bd:0,weak:0,wet:0,hello:true,gold:false,elite:false,wb:1};
+  en={art:BOSS[zi](),name:(w.g?"🏰 ":"🌍 ")+z.bn,hp:w.hp0,max:w.max0,atk,reward:0,ab:z.ab,n:0,boss:true,z,zi,slow:0,sw:0,burn:0,bd:0,weak:0,wet:0,hello:true,gold:false,elite:false,wb:1};
 }
 function wbFinish(wiped){
   const w=s.wb;if(!w)return;
@@ -2334,6 +2334,7 @@ function wbFinish(wiped){
   s.wb=null;s.heroes.forEach(h=>{h.hp=Math.max(Math.ceil(h.maxHp*.6),h.hp>0?h.hp:0);h.rez=0;h.hun=Math.max(h.hun,40);});
   spawn();
   log("🌍 Бой с мировым боссом окончен"+(wiped?" (отряд пал)":"")+": нанесено "+dmg+" урона!");SFX.win();
+  if(w.g){gFetch("/gb/hit",{dmg},j=>{if(j&&j.ok){window.gbdSet(j);window.gbSetMsg("Нанесено "+j.dealt+" урона боссу гильдии. Твой вклад: "+j.my);log("🏰 "+"Нанесено "+j.dealt+" урона боссу гильдии");}else window.gbSetMsg("Результат не засчитан.");});return;}
   gFetch("/wb/hit",{dmg},j=>{if(j&&j.ok){wbd=j;wMsg="Нанесено "+j.dealt+" урона. Всего за день: "+j.my+(j.rank?" · место "+j.rank:"");log("🌍 "+wMsg);}else wMsg="Результат не засчитан.";});
 }
 function wbRender(){
@@ -2763,6 +2764,64 @@ try{const _t=talRender;talRender=function(){const h=sel();return (h?bannerH(h):"
 const SK=document.getElementById("bSkill");
 if(SK&&window.MutationObserver){let busy=0;const fix=()=>{if(busy)return;busy=1;try{const h=sel();const c=h?h.cls:"warrior";let sp=SK.querySelector(".skI");[...SK.childNodes].forEach(nd=>{if(nd.nodeType===3)nd.remove()});if(!sp){sp=document.createElement("span");sp.className="skI";SK.insertBefore(sp,SK.firstChild)}if(sp.dataset.c!==c){sp.dataset.c=c;sp.innerHTML=skIc(c)}}catch(e){}busy=0};new MutationObserver(fix).observe(SK,{childList:true,subtree:true,characterData:true});setTimeout(fix,300)}
 }catch(e){}})();
+// ===== СЕЗОННЫЙ ПРОПУСК, ГИЛЬДЕЙСКИЙ БОСС, ДРУЗЬЯ =====
+(function(){try{
+const st=document.createElement("style");st.textContent=`
+.spp{display:flex;gap:6px;align-items:stretch;margin:6px 0}.spp>div{flex:1;min-width:0;padding:7px 4px;text-align:center;border-radius:11px;background:linear-gradient(#1a1618,#0a080c);border:2px solid #3a2e10;font:11px Georgia,serif;color:#d8ccb0}
+.spp>div.p{border-color:#8a6a1c;background:linear-gradient(#2a2208,#0e0a04)}.spp b{display:block;font:700 10px Georgia,serif;letter-spacing:2px;color:#8fa694;margin-bottom:3px}.spp .p b{color:#e8c868}
+.spp button{margin-top:5px;width:100%;font:700 11px Georgia,serif;padding:5px 0;border-radius:7px;border:1.5px solid #05060a;color:#1a1004;background:linear-gradient(#ffe48a,#e0a828 60%,#9a6a10)}.spp button:disabled{background:#1a1c1e;color:#6a6a6a;border-color:#2a2a2a}
+.splv{width:46px;flex:none;text-align:center;font:700 20px Georgia,serif;color:#e8c868;display:flex;align-items:center;justify-content:center;border-radius:11px;border:2px solid #4a3a14;background:#0a080c}
+.splv.cur{border-color:#2aff9a;color:#7affc8;box-shadow:0 0 10px #2aff9a66}.splv.lk{color:#5a5a50;border-color:#2a2a24}
+.gbx{padding:10px;margin:8px 0;border-radius:14px;background:linear-gradient(135deg,#2a1214,#0b0708);border:2px solid #8a2a2a;box-shadow:inset 0 0 26px #000a,0 0 14px rgba(220,40,50,.25);text-align:center}
+.gbx .bs{height:120px}.gbx .bs svg{height:100%;width:auto}.gbx b{display:block;font:700 16px Georgia,serif;color:#f2d98a;margin-top:4px}.gbx small{display:block;font:11px Georgia,serif;color:#b89a9a;margin-top:2px}
+.gbx .hb{height:14px;margin:8px 0 4px;border:2px solid #c9a040;border-radius:8px;background:#0a0305;overflow:hidden}.gbx .hb i{display:block;height:100%;background:linear-gradient(#ff9a8a,#d02a2a 55%,#6a0e14)}
+`;document.head.appendChild(st);
+// ---- сезонный пропуск ----
+const sid=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)};
+const MAXL=30;
+const ssm=()=>{const x=m.ss;if(!x||x.id!==sid()){m.ss={id:sid(),bk:m.bk|0,ko:m.ko|0,aw:m.aw|0,c:{},p:{}};}return m.ss};
+const spPts=()=>{const x=ssm();return Math.max(0,((m.bk|0)-x.bk)*12+Math.floor(((m.ko|0)-x.ko)/25)+((m.aw|0)-x.aw)*15)};
+const spLv=()=>Math.min(MAXL,Math.floor(spPts()/100));
+const prem=()=>(m.sp|0)>Date.now();
+const fr=L=>{const k=1+Math.floor((m.best|0)/50);const r={};if(L%5===0){r.cr=10+L;}else if(L%2)r.g=300*L*k;else{r.pot=1;r.food=2;}if(L===10)r.ch=[0,1];if(L===20)r.ch=[1,1];if(L===30)r.ch=[2,1];return r};
+const pr=L=>{const r={cr:5+Math.floor(L/2)};if(L%10===0)r.ch=[L===30?3:2,1];else if(L%5===0)r.ch=[1,1];return r};
+const rtxt=r=>[r.g?"💰 "+r.g:"",r.cr?"♦️ "+r.cr:"",r.pot?"🧪":"",r.food?"🍖×"+r.food:"",r.ch?CHI[r.ch[0]]+" "+CHN[r.ch[0]]:""].filter(Boolean).join(" · ");
+const give=r=>{if(r.g)s.gold+=r.g;if(r.cr)m.cr+=r.cr;if(r.pot)s.pot+=r.pot;if(r.food)s.food+=r.food;if(r.ch)m.ch[r.ch[0]]+=r.ch[1]};
+const dleft=()=>{const d=new Date();return Math.ceil((new Date(d.getFullYear(),d.getMonth()+1,1)-d)/86400000)};
+window.spLv=spLv;window.spRender=function(){
+ const x=ssm(),P=spPts(),L=spLv(),pm=prem();
+ let b='<div class="tmh"><b>СЕЗОН</b><small>ДО КОНЦА СЕЗОНА: '+dleft()+' ДН</small></div>';
+ b+='<div class="bnr" style="border-color:#e8c868"><div class="fr" style="width:56px">'+lgBadge(Math.min(4,Math.floor(L/6)))+'</div><div class="in"><b>Уровень '+L+' из '+MAXL+'</b><div class="hpb" style="margin:6px 0 4px"><i style="width:'+(L>=MAXL?100:P%100)+'%"></i></div><small>очки сезона: '+P+' · за босса +12, за 25 врагов +1, за победу на арене +15</small></div></div>';
+ b+=pm?'<div class="cht">🎫 Премиум-дорожка открыта (у тебя активен «Пропуск героя»)</div>':'<div class="cht">🎫 Премиум-дорожка открывается вместе с «Пропуском героя» (⭐ в «Донат»): ♦️ каждый уровень и сундуки до мифического</div>';
+ for(let l=1;l<=MAXL;l++){
+  const f=fr(l),q=pr(l),ok=L>=l;
+  b+='<div class="spp"><div class="splv '+(ok?"cur":l===L+1?"":"lk")+'">'+l+'</div><div><b>БЕСПЛАТНО</b>'+rtxt(f)+'<button data-a="spc" data-i="'+l+'"'+(!ok||x.c[l]?" disabled":"")+'>'+(x.c[l]?"✅":ok?"Забрать":"🔒")+'</button></div><div class="p"><b>ПРЕМИУМ</b>'+rtxt(q)+'<button data-a="spp" data-i="'+l+'"'+(!ok||!pm||x.p[l]?" disabled":"")+'>'+(x.p[l]?"✅":!pm?"🔒 пропуск":ok?"Забрать":"🔒")+'</button></div></div>'}
+ return b};
+// ---- гильдейский босс ----
+let gbd=null,gbMsg="";window.gbdSet=j=>{gbd=j};
+const gbBlock=()=>{
+ if(!gbd||gbd.load){if(!gbd){gbd={load:1};gFetch("/gb/state",{},j=>{gbd=j;});}return row("🏰 Босс гильдии","загрузка…");}
+ if(gbd.off)return "";if(!gbd.g)return "";
+ const d=gbd,zz=(d.zi|0)%ZN.length,z=ZN[zz],pc=Math.max(0,Math.min(100,d.hp/d.max*100));
+ let b=(gbMsg?'<div class="cht">'+gbMsg+'</div>':'')+'<div class="hcht" style="font:700 11px Georgia,serif;letter-spacing:3px;color:#8fa694;text-align:center;margin:12px 0 4px">БОСС ГИЛЬДИИ · НЕДЕЛЯ</div>';
+ if(d.y)b+=rowI(ico2("crown"),"Награда за босса","твой урон: "+d.y.d+" · ♦️ "+d.y.cr+" + 🟨 сундук","Забрать","gbclaim");
+ b+='<div class="gbx"><div class="bs">'+BOSS[zz]()+'</div><b>🏰 '+z.bn+'</b><small>общее здоровье для всей гильдии · обновляется каждую неделю</small><div class="hb"><i style="width:'+pc+'%"></i></div><small>'+d.hp+' / '+d.max+' · твой урон: '+d.my+' · босс побеждён гильдией раз: '+(d.bk|0)+'</small></div>';
+ b+=row("⚔️ Бой с боссом гильдии","12 ходов. Попыток сегодня: "+d.att+"/2"+(d.hp<=0?" · босс повержен!":""),s.wb?"В бою":s.tw?"Выйди из башни":"В бой","gbgo",d.att<1||d.hp<=0||!!s.wb||!!s.tw);
+ b+='<div class="cht">🏆 Урон по боссу в этой гильдии</div>';
+ if(!(d.top||[]).length)b+=row("Пока никто не бил босса","стань первым!");
+ (d.top||[]).forEach((x,i)=>{b+=row((i+1)+". "+esc(x.n),"урон: "+x.d);});
+ b+='<div class="cht">📜 Награда: ♦️ за урон (до 200) и 🟨 сундук каждому, кто бил, когда босса победили</div>';
+ return b};
+const ico2=k=>'<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M8 36 L6 14 L16 24 L24 10 L32 24 L42 14 L40 36Z" fill="#e8c868" stroke="#05060a" stroke-width="1.8" stroke-linejoin="round"/><circle cx="24" cy="10" r="2.4" fill="#e8283c"/></svg>';
+try{const _g=guildRender;guildRender=function(){let b=_g();if(gd&&gd.g){b+=gbBlock();if((gd.list||[]).length){b+='<div class="hcht" style="font:700 11px Georgia,serif;letter-spacing:3px;color:#8fa694;text-align:center;margin:12px 0 4px">ЛУЧШИЕ ГИЛЬДИИ</div>'+gd.list.map((x,i)=>row((i+1)+". "+esc(x.n),"участников: "+x.c+" · очки: "+x.p+" · боссов побеждено: "+(x.bk|0))).join("")}}return b}}catch(e){}
+window.XACT={
+ spc(l){const x=ssm();l=+l;if(spLv()<l||x.c[l])return;x.c[l]=1;const r=fr(l);give(r);SFX.chest();log("🎫 Сезон, уровень "+l+": "+rtxt(r));},
+ spp(l){const x=ssm();l=+l;if(spLv()<l||x.p[l]||!prem())return;x.p[l]=1;const r=pr(l);give(r);SFX.chest();log("🎫 Премиум, уровень "+l+": "+rtxt(r));},
+ gbgo(){if(s.wb||s.tw)return;gFetch("/gb/start",{},j=>{if(j.ok){s.wb={t:0,max:12,hp0:j.hp,max0:j.max,zi:j.zi,g:1};$("sheet").hidden=true;spawn();log("🏰 Бой с боссом гильдии начался: 12 ходов!");save();draw();}else gbMsg=j.limit?"Попытки на сегодня закончились.":j.dead?"Босс уже повержен!":"Не удалось начать бой.";});},
+ gbclaim(){gFetch("/gb/claim",{},j=>{if(j.ok){m.cr+=j.cr;s.cg+=j.cg||0;gbMsg="Награда: ♦️ "+j.cr+" и 🟨 сундук";if(gbd&&gbd.y)gbd.y=null;SFX.chest();save();draw();}else gbMsg="Награда уже получена.";});}
+};
+window.gbSetMsg=t=>{gbMsg=t};
+}catch(e){}})();
 const slowTurns=h=>{const r=h.lvl/(h.lvl+s.stage*.6+1);let t=Math.round(2+5*r+.5*(h.sl|0));if(en.boss)t=Math.round(t*.6);return Math.max(1,Math.min(10,t));};
 function attack(sk){
   const live=s.heroes.filter(h=>h.hp>0);
@@ -2900,13 +2959,14 @@ function skinRows(h){
   return o;
 }
 function render(){
-  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["wb","🌍 Мировой босс"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
+  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["sp","🎫 Сезон"],["wb","🌍 Мировой босс"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
   let b="";
   if(tab==="pick"&&window.pickRender){b=pickRender();}else if(tab==="pick"){
     const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
     b=(left.length?left.map(c=>{const d=CL[c],lock=d.pr&&!m.unl[c];return row((d.dv?"👑 ":"")+d.i+" "+d.n,d.d,lock?"🔒 "+d.pr+" ♦️":"Выбрать","pick",false,c);}).join(""):row("Все герои уже в твоей команде",""));
   }else if(tab==="shop"&&h&&window.shopRender){b=shopRender(h);
   }else if(tab==="bag"&&h&&window.bagRender){b=bagRender(h);
+  }else if(tab==="sp"&&window.spRender){b=spRender();
   }else if(tab==="ach"&&window.achRender){b=achRender();
   }else if(tab==="shop"&&h){
     const c=costs(h),nx=ARM[h.arm+1],cl=CL[h.cls],sl=h.sl|0;
@@ -2996,7 +3056,7 @@ function render(){
   sh.innerHTML=head+'<div class="body">'+b+"</div>";
   const nb=sh.querySelector(".body"),nt=sh.querySelector(".tabs");if(nb)nb.scrollTop=sy;if(nt){nt.scrollLeft=sx;const on=nt.querySelector(".on");if(on&&!sx&&!WIN[tab]){const x=on.offsetLeft-nt.clientWidth/2+on.offsetWidth/2;if(x>0)nt.scrollLeft=x;}}
 }
-const ACT={
+const ACT={...(window.XACT||{}),
   close(){if(tab==="bt"&&bt&&!bt.done)return;if(s.heroes.length)$("sheet").hidden=true;},
   afight(u){if(!arena||!arena.me||arena.me.left<1||!s.heroes.length)return;post("/arena/fight",{opp:+u}).then(r=>r.json()).then(d=>{if(d.error){note(d.error==="limit"?"Бои на сегодня закончились":"Соперник недоступен, обнови список");fetchArena();return;}startBattle(d.opp);}).catch(()=>note("Сервер не отвечает, попробуй позже"));},
   arefresh(){fetchArena();},
