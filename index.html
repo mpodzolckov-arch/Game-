@@ -147,6 +147,13 @@ html,body{background:#0a0710}
 .r button:disabled{background:#2a2432;color:#7a7088;border-color:#3a3044;box-shadow:none;opacity:1}
 .r button:active{transform:translateY(1px);box-shadow:0 1px 0 #4a2e08}
 .cht{font-family:var(--serif);background:linear-gradient(90deg,#3a2c14,#241a10);border-left:3px solid var(--gold);color:#ffd98a;border-radius:6px;letter-spacing:.3px}
+/* питомцы */
+#pet{position:absolute;left:3%;bottom:35%;z-index:4;text-align:center;pointer-events:none}
+#pet .fig svg{height:clamp(46px,9dvh,70px);width:auto}
+#pet small{display:block;font-family:var(--serif);font-size:10px;color:var(--parch);text-shadow:0 1px 2px #000,0 0 4px #000;margin-top:-2px}
+.pop.p{color:#ffb86b;font-size:20px}
+.pi{display:inline-block;width:34px;height:34px;vertical-align:middle;margin-right:4px}
+.pi svg{width:100%;height:100%}
 </style>
 </head>
 <body>
@@ -156,7 +163,7 @@ html,body{background:#0a0710}
     <div id="bg"></div><div id="zone"></div>
     <div id="foe"><div id="ename"></div><div class="hpb"><i id="ebar"></i></div><div id="eab"></div><div class="em" id="en"><i class="shd"></i><span class="fig" id="enf"></span></div></div>
     <div id="log"></div>
-    <div id="team"></div>
+    <div id="team"></div><div id="pet" style="display:none"><span class="fig"></span><small></small></div>
   </div>
   <div id="info"></div>
   <div id="bar">
@@ -1004,6 +1011,104 @@ function auraArt(r){
   if(r===11)b+='<path class="pulse" d="M50 118L10 20M50 118L90 20M50 118L50 4" stroke="#ffd34a" stroke-width="3" opacity=".35"/><circle cx="50" cy="70" r="48" fill="#ffd34a" opacity=".12" class="pulse"/>';
   return b;
 }
+// ===== ПИТОМЦЫ: данные и арт =====
+const PRAR=[["Обычный","#c9c2d8"],["Редкий","#5ab0ff"],["Эпический","#b36bff"],["Легендарный","#ffb02e"],["Мифический","#ff4d6d"]];
+const PW=[55,28,12,4,1];
+const qo=e=>(e&&e.indexOf("none")>=0)?"":OL;
+const qP=(d,f,x="")=>`<path d="${d}" fill="${f}" ${qo(x)} ${x}/>`;
+const qR=(x,y,w,h,r,f,e="")=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${f}" ${qo(e)} ${e}/>`;
+const qC=(x,y,r,f,e="")=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${qo(e)} ${e}/>`;
+const qEL=(x,y,rx,ry,f,e="")=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" ${qo(e)} ${e}/>`;
+const PMAX=30;
+const pEyes=(x1,x2,y,c)=>qEL(x1,y,4.4,5,"#fff")+qEL(x2,y,4.4,5,"#fff")+qC(x1+.6,y+.6,2.6,c||"#1b1226","stroke=\"none\"")+qC(x2+.6,y+.6,2.6,c||"#1b1226","stroke=\"none\"")+qC(x1+1.4,y-.6,1,"#fff","stroke=\"none\"")+qC(x2+1.4,y-.6,1,"#fff","stroke=\"none\"");
+const PA={
+ wolf:()=>svg("0 0 100 100",
+  qEL(50,94,30,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M20 70Q8 66 10 48Q18 56 28 58z","#7d8aa3")+
+  qEL(48,70,26,18,"#8f9bb5")+qEL(50,76,15,11,"#e4e8f2")+
+  qR(30,78,9,15,4,"#7d8aa3")+qR(58,78,9,15,4,"#7d8aa3")+
+  qP("M34 34L30 12L46 26z","#7d8aa3")+qP("M66 34L70 12L54 26z","#7d8aa3")+
+  qP("M36 30L33 18L43 26z","#e6a3b3","stroke=\"none\"")+qP("M64 30L67 18L57 26z","#e6a3b3","stroke=\"none\"")+
+  qEL(50,44,22,19,"#8f9bb5")+qEL(50,54,12,9,"#e4e8f2")+
+  pEyes(41,59,42,"#e8a33a")+qEL(50,51,4.6,3.3,"#1b1226")+ST("M50 54v3M45 58Q50 61 55 58","#1b1226",1.8)),
+ fox:()=>svg("0 0 100 100",
+  qEL(50,94,30,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M18 74Q0 66 8 40Q22 44 30 62z","#f08a2a")+qP("M8 40Q12 40 14 46Q8 50 10 58Q2 52 8 40z","#fff4e0","stroke=\"none\"")+
+  qEL(50,70,24,18,"#f08a2a")+qEL(50,76,13,11,"#fff4e0")+
+  qR(31,78,9,15,4,"#7a3d12")+qR(58,78,9,15,4,"#7a3d12")+
+  qP("M32 36L26 8L48 26z","#f08a2a")+qP("M68 36L74 8L52 26z","#f08a2a")+
+  qP("M34 30L30 16L43 26z","#3a1c0a","stroke=\"none\"")+qP("M66 30L70 16L57 26z","#3a1c0a","stroke=\"none\"")+
+  qEL(50,44,22,18,"#f08a2a")+qP("M28 48Q50 70 72 48Q60 40 50 52Q40 40 28 48z","#fff4e0","stroke=\"none\"")+
+  pEyes(41,59,42,"#7a3d12")+qEL(50,51,3.8,2.8,"#1b1226")),
+ slime:()=>svg("0 0 100 100",
+  qEL(50,94,30,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M14 88Q8 52 34 36Q50 20 66 36Q92 52 86 88Q50 98 14 88z","#58d68d")+
+  qP("M26 52Q32 40 44 36Q34 44 32 56z","#b8ffd4","stroke=\"none\" opacity=\".8\"")+
+  pEyes(38,62,62,"#12301f")+ST("M42 74Q50 82 58 74","#12301f",2.6)+
+  qC(70,82,3,"#8bf0b8","stroke=\"none\"")+qC(24,76,2.2,"#8bf0b8","stroke=\"none\"")),
+ owl:()=>svg("0 0 100 100",
+  qEL(50,95,26,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M26 38L22 14L40 26z","#8a6a45")+qP("M74 38L78 14L60 26z","#8a6a45")+
+  qEL(50,60,28,32,"#a07d52")+qEL(50,70,17,20,"#e6d3a8")+
+  qP("M24 56Q10 70 24 88Q30 74 30 62z","#7a5a38")+qP("M76 56Q90 70 76 88Q70 74 70 62z","#7a5a38")+
+  ST("M40 66l4 4M50 66l4 4M60 66l-4 4M45 78l4 4M55 78l-4 4","#c0a070",2)+
+  qC(38,46,12,"#f6ecd0")+qC(62,46,12,"#f6ecd0")+qC(38,47,6,"#e8a33a")+qC(62,47,6,"#e8a33a")+qC(38,47,3,"#1b1226","stroke=\"none\"")+qC(62,47,3,"#1b1226","stroke=\"none\"")+
+  qP("M45 52L50 62L55 52z","#f0a030")+
+  qP("M40 92l-4 4M46 92l-2 4M60 92l4 4M54 92l2 4","#f0a030","")),
+ turtle:()=>svg("0 0 100 100",
+  qEL(50,94,34,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M80 78L96 82L82 86z","#7bb36a")+
+  qR(22,78,14,14,5,"#7bb36a")+qR(64,78,14,14,5,"#7bb36a")+
+  qEL(18,62,12,10,"#7bb36a")+qC(14,60,1.6,"#1b1226","stroke=\"none\"")+
+  qP("M20 82Q18 38 52 34Q86 38 84 82z","#4e8a5a")+
+  ST("M34 80Q34 52 52 40M52 40Q70 52 70 80M26 66H78","#2f5e3a",2.4)+
+  qP("M44 50L60 50L66 62L52 70L38 62z","#6bb07a","")+
+  ST("M46 88Q50 92 54 88","#2f5e3a",0)),
+ dragon:()=>svg("0 0 100 100",
+  qEL(50,95,30,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M20 66Q2 52 6 30Q22 40 30 56z","#c0392b")+
+  qP("M24 72Q4 80 8 92Q24 90 34 80z","#c0392b")+
+  qP("M30 58L10 28L36 40L40 20L52 46z","#e0524a")+qP("M70 58L90 28L64 40L60 20L48 46z","#e0524a")+
+  qEL(50,68,22,22,"#e74c3c")+qEL(50,74,13,16,"#ffd98a")+
+  ST("M44 66h12M44 74h12M44 82h12","#d8a850",1.6)+
+  qR(32,82,10,12,4,"#c0392b")+qR(58,82,10,12,4,"#c0392b")+
+  qP("M36 38L32 18L44 30z","#ffe2a8")+qP("M64 38L68 18L56 30z","#ffe2a8")+
+  qEL(50,46,20,17,"#e74c3c")+qEL(50,54,11,8,"#f0786a")+qC(46,54,1.6,"#7a1a12","stroke=\"none\"")+qC(54,54,1.6,"#7a1a12","stroke=\"none\"")+
+  pEyes(41,59,42,"#e8a33a")+ST("M38 34l8 4M62 34l-8 4","#7a1a12",2.4)),
+ phoenix:()=>svg("0 0 100 100",
+  glow(50,56,44,"#ffb02e")+
+  qP("M42 76Q18 88 8 70Q22 72 34 64z","#ff7a1a")+qP("M58 76Q82 88 92 70Q78 72 66 64z","#ff7a1a")+
+  qP("M46 80Q40 98 30 96Q40 90 42 78z","#ff4d1a")+qP("M54 80Q60 98 70 96Q60 90 58 78z","#ff4d1a")+qP("M50 82Q50 100 50 100Q46 92 47 80z","#ffcf3a")+
+  qP("M24 56Q4 46 6 22Q24 30 36 50z","#ff9a2a")+qP("M76 56Q96 46 94 22Q76 30 64 50z","#ff9a2a")+
+  qEL(50,62,18,22,"#ff8a1a")+qEL(50,68,10,14,"#ffd34a")+
+  qP("M44 38L40 20L50 28L56 14L58 36z","#ffcf3a")+
+  qC(50,44,15,"#ff8a1a")+qP("M50 50L62 56L50 60L38 56z","#ffd34a")+
+  qC(44,43,2.6,"#fff7d0")+qC(56,43,2.6,"#fff7d0")+qC(44.6,43.4,1.3,"#1b1226","stroke=\"none\"")+qC(56.6,43.4,1.3,"#1b1226","stroke=\"none\"")),
+ unicorn:()=>svg("0 0 100 100",
+  glow(50,52,44,"#d8b4ff")+qEL(50,95,30,4,"rgba(0,0,0,.35)","stroke=\"none\"")+
+  qP("M22 70Q4 70 8 88Q18 80 30 82z","#ff7ab8")+qP("M18 64Q2 58 6 44Q16 52 28 60z","#7ad0ff")+
+  qEL(50,72,26,17,"#fdf8ff")+qR(30,78,9,16,4,"#fdf8ff")+qR(60,78,9,16,4,"#fdf8ff")+
+  qP("M34 40Q28 22 40 14Q36 28 42 34z","#7ad0ff")+qP("M40 38Q30 30 36 18Q38 30 46 34z","#ff7ab8")+
+  qEL(54,48,19,17,"#fdf8ff")+qEL(60,56,11,8,"#f0dcf8")+qC(57,57,1.4,"#a070c0","stroke=\"none\"")+qC(63,57,1.4,"#a070c0","stroke=\"none\"")+
+  qP("M48 32L56 4L60 32z","#ffe27a")+ST("M50 26l8 -4M51 18l7 -3","#e0a820",1.6)+
+  qP("M42 34L38 20L50 30z","#fdf8ff")+
+  qC(52,46,3.2,"#fff")+qC(52.6,46.6,2,"#6a3fa0","stroke=\"none\"")+qC(53.2,45.8,.8,"#fff","stroke=\"none\"")+
+  qP("M38 44Q30 60 36 70Q40 58 44 48z","#ffb8e0","")),
+};
+const EGGC=["#cfd6e4","#5ab0ff","#b36bff","#ffb02e","#ff4d6d"];
+const eggArt=(r)=>svg("0 0 60 70",qEL(30,64,18,4,"rgba(0,0,0,.35)","stroke=\"none\"")+qP("M30 4Q52 20 52 42Q52 62 30 62Q8 62 8 42Q8 20 30 4z","#f6efe0")+qP("M12 38Q20 30 30 38Q40 46 50 36Q52 40 52 44Q40 56 30 48Q20 40 10 48z",EGGC[r||0],"stroke=\"none\"")+qC(22,24,3,"#fff","stroke=\"none\" opacity=\".8\"")+qC(36,22,2,EGGC[r||0],"stroke=\"none\""));
+// id: [имя, редкость, роль, описание, база атаки]
+const PETS={
+ wolf:["Волчонок",0,"atk","кусает врага каждый ход"],
+ fox:["Лисёнок",0,"fox","кусает врага, иногда находит монеты"],
+ slime:["Слизень",0,"slime","бьёт слабо, зато приносит золото"],
+ owl:["Сова-целитель",1,"heal","каждые 3 хода лечит слабейшего героя"],
+ turtle:["Черепашка-страж",1,"guard","снижает урон по отряду, слегка бьёт"],
+ dragon:["Дракончик",2,"fire","огненный шар раз в 2 хода, поджигает"],
+ phoenix:["Феникс",3,"phx","огонь, лечит отряд и воскрешает павших"],
+ unicorn:["Единорог",4,"uni","радужная магия: лечит всех и усиливает удары"]
+};
+const PIDS=Object.keys(PETS);
 const mk=c=>{const d=CL[c];return{cls:c,lvl:1,xp:0,wl:0,sl:0,arm:0,t:0,cd:0,hun:100,rez:0,wt:0,lw:null,la:null,maxHp:d.hp,hp:d.hp,atk:d.atk,def:d.def};};
 const wp=h=>m.ex[h.cls]?CL[h.cls].x:CL[h.cls].w;
 const X=h=>m.ex[h.cls]?2:1;
@@ -1223,7 +1328,7 @@ const ACH=[
  ["sl10","✨ Мастер навыка","Навык героя до 10 уровня",()=>allH().some(h=>(h.sl|0)>=10),25],
  ["sk5","🎨 Модник","Собери 5 скинов",()=>nSk()>=5,20],["sk20","🎨 Коллекционер","Собери 20 скинов",()=>nSk()>=20,80],["dv","⬜ Божественный блеск","Получи божественный скин",()=>Object.keys(m.sk).some(k=>k.endsWith(":4")),100],
  ["aw10","⚔️ Гладиатор","Победи 10 раз на арене",()=>m.aw>=10,30],["aw50","⚔️ Чемпион арены","Победи 50 раз на арене",()=>m.aw>=50,120],
- ["ch25","📦 Кладоискатель","Открой 25 сундуков",()=>m.co>=25,25],["fr1","👥 Зови друзей","Пригласи 1 друга",()=>m.inv>=1,30],["fr5","👥 Душа компании","Пригласи 5 друзей",()=>m.inv>=5,150],["xc","💱 Делец","Обменяй золото на кристаллы",()=>m.xc>0,5]
+ ["ch25","📦 Кладоискатель","Открой 25 сундуков",()=>m.co>=25,25],["fr1","👥 Зови друзей","Пригласи 1 друга",()=>m.inv>=1,30],["fr5","👥 Душа компании","Пригласи 5 друзей",()=>m.inv>=5,150],["p1","🐾 Друг зверей","Получи первого питомца",()=>Object.keys(m.pets.o).length>=1,10],["p5","🐲 Зверинец","Собери 5 питомцев",()=>Object.keys(m.pets.o).length>=5,30],["p8","🦄 Все питомцы","Собери всех питомцев",()=>Object.keys(m.pets.o).length>=8,80],["xc","💱 Делец","Обменяй золото на кристаллы",()=>m.xc>0,5]
 ];
 function checkAch(){
   grantSkQ();
@@ -1436,7 +1541,7 @@ function draw(){
   $("ename").textContent=en.name;
   $("eab").textContent=[abText(en.ab),en.slow>0&&"🐌 замедлен: "+en.slow,en.burn>0&&"🔥 горит: "+en.burn,en.wet>0&&"🌊 промок: "+en.wet,en.weak>0&&"💀 ослаблен: "+en.weak].filter(Boolean).join(" · ");
   $("ebar").style.width=pc(en.hp,en.max)+"%";
-  drawTeam();
+  drawTeam();drawPet();
   $("npot").textContent=s.pot;$("nfood").textContent=s.food;
   $("bFeed").disabled=!(s.food>0&&s.heroes.some(x=>x.hun<=70));
   if(!h){$("info").innerHTML="";$("bPot").disabled=true;$("bSkill").disabled=true;$("skn").textContent="";return;}
@@ -1470,6 +1575,7 @@ function win(){
   }else if(Math.random()<.12){s.cw++;t+=" 🟫 сундук!";}
   if(en.gold){m.gk=(m.gk|0)+1;qAdd("gk");const c=rnd(1,3)+Math.floor(s.stage/100);m.cr+=c;t+=" ✨ +"+c+" 💎";if(Math.random()<.5){m.ch[Math.random()<.3?1:0]++;t+=" 📦 сундук!";}}
   else if(en.elite){m.el=(m.el|0)+1;if(Math.random()<.25){s.cw++;t+=" 🟫 сундук!";}}
+  if(petDrop(boss?.4:en.gold?.6:en.elite?.08:.012))t+=" 🥚 яйцо питомца!";
   if(s.ev)s.ev.left--;
   chestDrops(s.stage,boss).forEach(r=>{m.ch[r]++;t+=" "+CHI[r]+" "+CHN[r]+" сундук!";if(r>=1)notify("loot",CHI[r]+" "+CHN[r]+" сундук выпал на этапе "+s.stage+"!");});
   log(t);buzz(boss?"heavy":"light");
@@ -1680,6 +1786,109 @@ function choreo(order,strikes,skI,pops,killed,says){
   (says||[]).forEach(q=>setTimeout(()=>say(q.w,q.t,q.w==="en"),q.at==="e"?base+200*F:q.at==="k"?hitsEnd*.6:q.at==="a"?150:q.at||150));
   animMs=Math.min(2600,Math.max(450,killed?hitsEnd+260*F:base+strikes.length*STEP+420*F));
 }
+// ===== ПИТОМЦЫ: логика =====
+m.pets=Object.assign({o:{},a:null,e:1,x:null,t:0},m.pets||{});m.pets.o=m.pets.o||{};
+let petMsg="",petKey="";
+const pLv=id=>(m.pets.o[id]&&m.pets.o[id].lv)|0;
+const pAway=()=>m.pets.x?m.pets.x.id:null;
+const activePet=()=>{const a=m.pets.a;return a&&m.pets.o[a]&&pAway()!==a?a:null;};
+const PMUL={atk:1,fox:.85,slime:.45,heal:.3,guard:.5,fire:1.9,phx:1.3,uni:1.1};
+const pPow=id=>Math.max(1,Math.round((2+pLv(id)*1.6+s.stage*.35)*PMUL[PETS[id][2]]));
+const pGuard=()=>{const id=activePet();return id==="turtle"?Math.min(.2,.05+pLv(id)*.005):0;};
+const pCost=id=>Math.round(40*Math.pow(Math.max(1,pLv(id)),1.7));
+const pName=id=>PETS[id][0];
+function petTurn(){
+  const id=activePet();if(!id)return null;
+  const r=PETS[id][2],lv=pLv(id),t=m.pets.t=(m.pets.t|0)+1,o={id,d:0,fx:null,melee:true,pops:[]},pow=pPow(id);
+  const live=()=>s.heroes.filter(a=>a.hp>0);
+  const weak=()=>live().sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+  const heal=(a,fr)=>{if(!a||a.hp<=0)return;const g=Math.max(1,Math.round(a.maxHp*fr));a.hp=Math.min(a.maxHp,a.hp+g);o.pops.push(["h"+s.heroes.indexOf(a),"+"+g,"h"]);};
+  const gold=(ch,base,k)=>{if(Math.random()<ch){const g=Math.round(base+s.stage*k);s.gold+=g;o.pops.push(["pet","+"+g+"💰","s"]);}};
+  if(r==="atk")o.d=pow+rnd(0,2);
+  else if(r==="fox"){o.d=pow+rnd(0,2);gold(.2,2,.4);}
+  else if(r==="slime"){o.d=pow+rnd(0,1);gold(.3,3,.6);}
+  else if(r==="heal"){o.d=pow;o.melee=false;o.fx="arc";if(t%3===0)heal(weak(),.07+lv*.003);}
+  else if(r==="guard"){o.d=pow+rnd(0,2);}
+  else if(r==="fire"){o.melee=false;o.fx="fire";if(t%2===0){o.d=pow+rnd(0,3);en.burn=Math.max(en.burn||0,2);en.bd=Math.max(en.bd||0,Math.round(pow*.25));}}
+  else if(r==="phx"){o.melee=false;o.fx="fire";o.d=pow+rnd(0,3);if(t%5===0)live().forEach(a=>heal(a,.08+lv*.004));
+    if(t%12===0){const dd=s.heroes.find(a=>a.hp<=0);if(dd){dd.hp=Math.ceil(dd.maxHp*.35);dd.rez=0;o.pops.push(["h"+s.heroes.indexOf(dd),"🔥","h"]);}}}
+  else if(r==="uni"){o.melee=false;o.fx="arc";o.d=pow+rnd(0,3);if(t%4===0){live().forEach(a=>heal(a,.06+lv*.003));s.bf=Math.max(s.bf,1);}}
+  o.d=o.d>0?Math.max(1,o.d):0;
+  return o;
+}
+function petFx(o,order,F){
+  try{
+    const e=$("pet");if(!e||!o||!e.animate)return;
+    F=F||FSC();const dl=Math.max(160,(hitsEndOf(order)||300)*.55),f=$("en").getBoundingClientRect(),r=e.getBoundingClientRect();
+    const hx=r.left+r.width/2,hy=r.top+r.height/2,ex=f.left+f.width/2,ey=f.top+f.height*.75;
+    if(o.d>0){
+      if(o.melee){
+        const dx=(ex-hx)*.7,dy=(ey-hy)*.75;
+        e.animate([{transform:"none"},{transform:"translate("+dx*.5+"px,"+(dy*.5-24)+"px) scale(1.1)",offset:.35},{transform:"translate("+dx+"px,"+dy+"px) scale(1.25) rotate(8deg)",offset:.6},{transform:"none"}],{duration:620*F,delay:dl,easing:"ease-in-out"});
+        setTimeout(()=>{try{slash("#ffe9a0",cpt($("en")),70);shake(3,140);}catch(x){}},dl+370*F);
+        setTimeout(()=>pop("en",o.d,"p"),dl+380*F);
+      }else{
+        e.animate([{transform:"none"},{transform:"translateY(-10px) scale(1.18)",offset:.4},{transform:"none"}],{duration:420*F,delay:dl});
+        shot(o.fx||"arc",cpt(e),cpt($("en")),o.fx==="fire"?40:30,420*F,dl+120*F,()=>{pop("en",o.d,"p");});
+      }
+      setTimeout(()=>{try{$("enf").animate([{filter:"brightness(2.4) saturate(.3)"},{filter:"brightness(1)"}],{duration:240*F});}catch(x){}},dl+(o.melee?380:560)*F);
+    }
+    o.pops.forEach((p,k)=>setTimeout(()=>pop(p[0]==="pet"?"pet":p[0],p[1],p[2]),dl+500*F+k*160));
+    try{snd(o.melee?420:640,.09,"triangle",.05,-160,dl/1000);}catch(x){}
+  }catch(x){}
+}
+function drawPet(){
+  const e=$("pet");if(!e)return;const id=activePet();
+  if(!id){e.style.display="none";petKey="";return;}
+  e.style.display="";const k=id+":"+pLv(id);
+  if(k!==petKey){petKey=k;e.querySelector(".fig").innerHTML=PA[id]();e.querySelector("small").textContent="Ур. "+pLv(id);}
+}
+const petDrop=ch=>{if(Math.random()<ch){m.pets.e++;return true;}return false;};
+function petRoll(){let x=Math.random()*PW.reduce((a,b)=>a+b,0),r=0;for(;r<PW.length-1;r++){if(x<PW[r])break;x-=PW[r];}const pool=PIDS.filter(i=>PETS[i][1]===r);return pool[rnd(0,pool.length-1)];}
+function petHatch(){
+  if(m.pets.e<1)return;m.pets.e--;const id=petRoll(),own=m.pets.o[id],ra=PETS[id][1];
+  if(!own){m.pets.o[id]={lv:1};if(!m.pets.a||!activePet())m.pets.a=id;petMsg="🥚 Вылупился <b style=\"color:"+PRAR[ra][1]+"\">"+pName(id)+"</b> ("+PRAR[ra][0]+")! Новый питомец.";if(ra>=2)notify("loot","🐾 Вылупился "+PRAR[ra][0].toLowerCase()+" питомец «"+pName(id)+"»!");}
+  else if(own.lv<PMAX){own.lv++;petMsg="🥚 Снова "+pName(id)+"! Питомец вырос до ур. "+own.lv+".";}
+  else{const g=500+s.stage*10;s.gold+=g;petMsg="🥚 "+pName(id)+" уже на максимуме — получено +"+g+" 💰.";}
+  SFX.chest();log(petMsg.replace(/<[^>]+>/g,""));checkAch();
+}
+function petBuy(){if(m.cr<30)return;m.cr-=30;m.pets.e++;petMsg="Куплено яйцо. Нажми «Вылупить».";}
+function petSet(id){if(m.pets.o[id]&&pAway()!==id){m.pets.a=id;petMsg="Теперь с вами: "+pName(id)+".";}}
+function petUp(id){const o=m.pets.o[id];if(!o||o.lv>=PMAX)return;const c=pCost(id);if(s.gold<c)return;s.gold-=c;o.lv++;petMsg=pName(id)+" стал сильнее: ур. "+o.lv+".";}
+const XRW=h=>({g:(a=>Math.round(h*(30+s.stage*4)*(1+a*.06)))(pLv(m.pets.x?m.pets.x.id:m.pets.a)),f:Math.max(1,Math.round(h/2)),e:h===1?.1:h===4?.45:.9,c:h===8?3:0});
+function petGo(h){
+  if(m.pets.x)return;const id=m.pets.a;if(!id||!m.pets.o[id])return;
+  m.pets.x={id,h,end:Date.now()+h*3600000};petMsg="🧭 "+pName(id)+" ушёл на вылазку на "+h+" ч.";
+}
+function petClaim(){
+  const x=m.pets.x;if(!x||Date.now()<x.end)return;const r=XRW(x.h);
+  s.gold+=r.g;s.food+=r.f;m.cr+=r.c;let t="🧭 "+pName(x.id)+" вернулся: +"+r.g+" 💰 +"+r.f+" 🍖"+(r.c?" +"+r.c+" 💎":"");
+  if(Math.random()<r.e){m.pets.e++;t+=" 🥚 яйцо!";}
+  m.pets.x=null;petMsg=t;SFX.win();log(t);
+}
+const fmtLeft=ms=>{const m2=Math.ceil(ms/60000),h=Math.floor(m2/60);return(h?h+" ч ":"")+(m2%60)+" мин";};
+const picon=id=>'<span class="pi">'+PA[id]()+"</span>";
+function petsRender(){
+  const P=m.pets,own=PIDS.filter(i=>P.o[i]);
+  let b=(petMsg?'<div class="cht">'+petMsg+"</div>":"");
+  b+=row('<span class="pi">'+eggArt(0)+"</span> Яйца питомцев ×"+P.e,"выпадают с боссов, золотых врагов и вылазок","Вылупить","phatch",P.e<1)+
+     row("💎 Купить яйцо","шанс на редкого и даже мифического питомца","💎 30","pbuy",m.cr<30);
+  if(P.x){
+    const left=P.x.end-Date.now(),done=left<=0,r=XRW(P.x.h);
+    b+=row("🧭 "+pName(P.x.id)+" на вылазке",done?"вернулся! добыча: "+r.g+" 💰, "+r.f+" 🍖"+(r.c?", "+r.c+" 💎":"")+", шанс на яйцо":"вернётся через "+fmtLeft(left),done?"Забрать":"","pclaim",false);
+  }else if(activePet()){
+    const a=activePet();
+    b+=rowB("🧭 Вылазка: "+pName(a),"питомец уйдёт и не будет драться, но принесёт золото, еду и яйца — даже пока ты не в игре",[["1 ч","pgo",1],["4 ч","pgo",4],["8 ч","pgo",8]]);
+  }
+  b+='<div class="cht">🐾 Коллекция: '+own.length+"/"+PIDS.length+"</div>";
+  PIDS.forEach(id=>{
+    const d=PETS[id],ra=PRAR[d[1]],o=P.o[id];
+    if(!o){b+=row('<span class="pi" style="filter:brightness(0) opacity(.45)">'+PA[id]()+"</span> ??? ","<span style=\"color:"+ra[1]+"\">"+ra[0]+"</span> питомец — найди в яйцах");return;}
+    const act=activePet()===id,away=pAway()===id,mx=o.lv>=PMAX;
+    b+=rowB(picon(id)+" "+d[0]+" · ур. "+o.lv+(act?" ✅":away?" 🧭":""),"<span style=\"color:"+ra[1]+"\">"+ra[0]+"</span> · "+d[3]+" · сила "+pPow(id),[[act?"Активен":away?"Ушёл":"Выбрать","pact",id,act||away],[mx?"МАКС":"⬆ 💰"+pCost(id),"pup",id,mx||s.gold<pCost(id)]]);
+  });
+  return b;
+}
 const slowTurns=h=>{const r=h.lvl/(h.lvl+s.stage*.6+1);let t=Math.round(2+5*r+.5*(h.sl|0));if(en.boss)t=Math.round(t*.6);return Math.max(1,Math.min(10,t));};
 function attack(sk){
   const live=s.heroes.filter(h=>h.hp>0);
@@ -1741,6 +1950,7 @@ function attack(sk){
   }
   buzz("light");
   if(en.hp>0&&en.burn>0){const b=Math.max(1,en.bd||1);en.hp-=b;total+=b;en.burn--;pops.push(["en",b,"b"]);}
+  let pt=null;if(en.hp>0){pt=petTurn();if(pt&&pt.d){en.hp-=pt.d;total+=pt.d;}}
   const killed=en.hp<=0;
   if(killed){
     deathGhost(order);
@@ -1766,7 +1976,7 @@ function attack(sk){
           let dm=Math.round(en.atk*wk*wt*100/(100+D(h)*3))+rnd(-1,2);
           if(en.ab.rage&&en.n%en.ab.rage===0){dm*=2;line+=" · 🔥 ярость!";}
           if(shield)dm=Math.round(dm/2);
-          dm=Math.max(1,dm);h.hp-=dm;pops.push(["h"+hi,"-"+dm,"e"]);
+          dm=Math.max(1,Math.round(dm*(1-pGuard())));h.hp-=dm;pops.push(["h"+hi,"-"+dm,"e"]);
           if(h.hp<=0)says.push({w:"h"+hi,t:pick1(HD),at:"e"});else if(Math.random()<.3)says.push({w:"h"+hi,t:pick1(HS[h.cls].h),at:"e"});
         }
         if(Math.random()<.45)says.push({w:"en",t:pick1(en.boss?en.z.bs:en.z.say),at:"e"});
@@ -1782,6 +1992,7 @@ function attack(sk){
   rezTick();
   if(skI>=0)SFX.skill();else SFX.strike(order);if(killed)setTimeout(SFX.kill,420);else strikes.forEach((st,j)=>setTimeout(()=>SFX.hurt(st.miss),620+j*520));
   save();draw();choreo(order,strikes,skI,pops,killed,says);
+  if(pt)petFx(pt,order);
 }
 function pick(c){
   if(allH().some(h=>h.cls===c))return;
@@ -1813,7 +2024,7 @@ function skinRows(h){
   return o;
 }
 function render(){
-  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
+  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
   let b="";
   if(tab==="pick"){
     const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
@@ -1841,6 +2052,8 @@ function render(){
     b=x?'<div class="cht">'+CL[x.cls].i+" Имя для героя ("+CL[x.cls].n+')</div><div class="r"><input id="nm" maxlength="14" value="'+(x.name?esc(x.name):"")+'" placeholder="Например: Артур" style="flex:1;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0d0a17;color:var(--text)"><button data-a="savename">Сохранить</button></div>'+row("Сбросить имя","вернуть название класса","Сбросить","savename0"):row("Герой не найден","");
   }else if(tab==="skin"&&h){
     b=skinRows(h);
+  }else if(tab==="pets"){
+    b=petsRender();
   }else if(tab==="chest"){
     b=(chestMsg?'<div class="cht">'+chestMsg+"</div>":"");
     for(let r=0;r<5;r++)b+=rowB(CHI[r]+" "+CHN[r]+" сундук ×"+m.ch[r],CHR[r]+" · скин героя или оружия",[["Открыть","och",r,m.ch[r]<1],["💎 "+CHP[r],"bch",r,m.cr<CHP[r]]]);
@@ -1927,7 +2140,7 @@ const ACT={
   equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=it.t==="w"?"lw":"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
   sell(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);s.gold+=it.v*6;},
   claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");notify("daily","🎁 Награда за день "+n+" получена. Завтра будет новая!");},
-  chest(){openChest();},
+  chest(){openChest();},phatch(){petHatch();},pbuy(){petBuy();},pact(i){petSet(i);},pup(i){petUp(i);},pgo(i){petGo(+i);},pclaim(){petClaim();},
   och(i){openCh(+i);},
   bch(i){i=+i;if(m.cr<CHP[i])return;m.cr-=CHP[i];m.ch[i]++;chestMsg="Куплен: "+CHI[i]+" "+CHN[i]+" сундук. Нажми «Открыть».";},
   g2c(n){n=+n;if(s.gold<n*1000)return;s.gold-=n*1000;m.cr+=n;m.xc=1;checkAch();chestMsg="Обмен: −"+n*1000+" 💰, +"+n+" 💎";},
