@@ -173,7 +173,7 @@ html,body{background:#0a0710}
     <div id="bg"></div><div id="zone"></div>
     <div id="foe"><div id="ename"></div><div class="hpb"><i id="ebar"></i></div><div id="eab"></div><div class="em" id="en"><i class="shd"></i><span class="fig" id="enf"></span></div></div>
     <div id="log"></div>
-    <div id="team"></div><div id="pet" style="display:none"><span class="fig"></span><small></small></div><div id="side"><button data-w="tower">🗼</button><button data-w="forge">⚒</button><button data-w="guild">🏰</button><button data-w="don">💎</button></div>
+    <div id="team"></div><div id="pet" style="display:none"><span class="fig"></span><small></small></div><div id="side"><button data-w="arena">⚔️</button><button data-w="tower">🗼</button><button data-w="forge">⚒</button><button data-w="guild">🏰</button><button data-w="don">💎</button></div>
   </div>
   <div id="info"></div>
   <div id="bar">
@@ -2290,7 +2290,7 @@ function talRender(){
 let gd=null,wbd=null,gMsg="",wMsg="";
 function gFetch(path,body,cb){
   if(!BOT_API||!tg||!tg.initData){cb({off:1});return;}
-  post(path,body||{}).then(r=>r.json()).then(j=>{cb(j);if(tab==="guild"||tab==="wb"||tab==="don")render();}).catch(()=>{cb({off:1});if(tab==="guild"||tab==="wb"||tab==="don")render();});
+  post(path,body||{}).then(r=>r.json()).then(j=>{cb(j);if(tab==="guild"||tab==="wb"||tab==="don"||tab==="arena")render();}).catch(()=>{cb({off:1});if(tab==="guild"||tab==="wb"||tab==="don"||tab==="arena")render();});
 }
 const applyPerk=()=>{m.gp=gd&&gd.g?gd.g.perk|0:0;save();};
 const GERR={inguild:"Ты уже в гильдии.",badname:"Название: 3–16 символов, буквы, цифры, пробел.",taken:"Такое название уже занято.",full:"В гильдии нет мест.",nogd:"Гильдия не найдена."};
@@ -2398,6 +2398,25 @@ function donRender(){
   return b;
 }
 setTimeout(()=>{if(tg&&tg.initData)gFetch("/shop/claim",{daily:1},shApply);},3500);
+
+// ===== АРЕНА: лиги, награды сезона, реванш =====
+m.al=m.al||{};
+const LG=[["🥉 Бронза",0,0],["🥈 Серебро",1000,20],["🥇 Золото",1200,50],["💠 Платина",1400,100],["💎 Алмаз",1600,200]];
+const lgOf=r=>{let i=0;LG.forEach((l,k)=>{if(r>=l[1])i=k;});return i;};
+const dhm=sec=>{const d=Math.floor(sec/86400),h=Math.floor(sec%86400/3600);return d?d+" д "+h+" ч":h+" ч";};
+function arenaExtra(me){
+  const li=lgOf(me.rating),nx=LG[li+1];
+  let b='<div class="cht">'+LG[li][0]+" лига"+(nx?" · до «"+nx[0]+"»: "+(nx[1]-me.rating)+" очков":" · максимальная")+"</div>";
+  const ss=arena.ss||{};
+  if(ss.rank&&ss.rew&&!ss.cl)b+=row("🏆 Награда за прошлую неделю","ты занял место #"+ss.rank+" · 💎 "+ss.rew,"Забрать","aseason");
+  else if(ss.rank&&ss.cl)b+=row("🏆 Награда за неделю получена","место #"+ss.rank);
+  if(ss.left)b+='<div class="cht">⏳ Сезон: через '+dhm(ss.left)+" награды получат лучшие 30 игроков (🥇 300 · 🥈 200 · 🥉 150 · 4–10 места 80 · 11–30 места 30 💎)</div>";
+  if((arena.rev||[]).length)b+='<div class="cht">🔁 Реванш — эти игроки победили тебя</div>'+arena.rev.map(o=>rowB("🔁 "+esc(o.name),"рейтинг "+o.rating+" · сила "+o.pw,[["⚔️ Отомстить","afight",o.uid,me.left<1]])).join("");
+  return b;
+}
+function arenaLeagues(me){
+  return '<div class="cht">🏅 Награды за лиги (один раз)</div>'+LG.slice(1).map((l,k)=>{const i=k+1,ok=me.rating>=l[1],dn=m.al[i];return row(l[0],"рейтинг от "+l[1]+" · 💎 "+l[2],dn?"✅":ok?"Забрать":"🔒","alg",!ok||dn,i);}).join("");
+}
 const slowTurns=h=>{const r=h.lvl/(h.lvl+s.stage*.6+1);let t=Math.round(2+5*r+.5*(h.sl|0));if(en.boss)t=Math.round(t*.6);return Math.max(1,Math.min(10,t));};
 function attack(sk){
   const live=s.heroes.filter(h=>h.hp>0);
@@ -2535,7 +2554,7 @@ function skinRows(h){
   return o;
 }
 function render(){
-  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["wb","🌍 Мировой босс"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
+  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["wb","🌍 Мировой босс"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
   let b="";
   if(tab==="pick"){
     const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
@@ -2595,8 +2614,8 @@ function render(){
     else{
       const me=arena.me,md=["🥇","🥈","🥉"];
       b='<div class="cht">⚔️ Рейтинг <b>'+me.rating+"</b> · место #"+(me.rank||"—")+" · побед "+me.w+" / поражений "+me.l+"<br>Боёв сегодня осталось: <b>"+me.left+"</b> из 5"+(arena.db?"":"<br><small>⚠️ без базы данных: рейтинг пропадает при перезапуске сервера</small>")+"</div>"+
-        arena.opps.map(o=>rowB("🛡️ "+esc(o.name),"рейтинг "+o.rating+" · сила "+o.pw+(o.uid<0?" · страж арены":"")+(o.w+o.l?" · "+o.w+"п/"+o.l+"пор":""),[["⚔️ Бой","afight",o.uid,me.left<1]])).join("")+
-        row("🔄 Другие соперники","","Обновить","arefresh")+
+        arenaExtra(me)+arena.opps.map(o=>rowB("🛡️ "+esc(o.name),"рейтинг "+o.rating+" · сила "+o.pw+(o.uid<0?" · страж арены":"")+(o.w+o.l?" · "+o.w+"п/"+o.l+"пор":""),[["⚔️ Бой","afight",o.uid,me.left<1]])).join("")+
+        row("🔄 Другие соперники","","Обновить","arefresh")+arenaLeagues(me)+
         '<div class="cht">🏆 Лучшие на арене</div>'+arena.top.map((t,i)=>'<div class="r"'+(t.me?' style="background:#2a1f48;border-radius:8px;padding-left:8px"':"")+"><div>"+(md[i]||"#"+(i+1))+" "+esc(t.n)+"</div><b>"+t.r+"</b></div>").join("")+
         '<div class="cht"><small>Твой отряд на арене — тот, что в бою сейчас. Победа: +3 💎. Защитник получит уведомление в бот.</small></div>';
     }
@@ -2621,7 +2640,7 @@ function render(){
     const n=dailyDay(),r=dRew(n||1);
     b=(n?row("🎁 Ежедневная награда, день "+n+" из 7","💰 "+r.g+" · 🍖 "+r.f+(r.p?" · 🧪":"")+(r.cw?" · 🟫":"")+(r.cg?" · 🟨×"+r.cg:""),"Забрать","claim"):row("🎁 Награда получена","приходи завтра, серия дней даёт больше"))+'<div class="cht">⚙️ Настройки</div>'+'<div class="cht">👥 Друзья</div>'+row("Пригласи друга","тебе +20 💎 за каждого, другу +10 💎 · приглашено: "+(m.inv|0),tg?"Позвать":"","invite")+row("🗑 Начать с нуля","удалит весь прогресс, героев и достижения","Сбросить","reset")+row("⏩ Быстрые анимации",m.fast?"включены: бои идут быстрее":"выключены: красивые длинные анимации",m.fast?"Выключить":"Включить","fast")+row("🔊 Звук",m.mute?"выключен":"включён",m.mute?"Включить":"Выключить","snd")+row("☁️ Облако Telegram",CS?"прогресс копируется в облако и подхватывается на другом устройстве":"доступно только внутри Telegram","","");
   }
-  const WIN={tower:"🗼 Башня испытаний",forge:"⚒ Кузница",guild:"🏰 Гильдия",don:"💎 Магазин"};
+  const WIN={tower:"🗼 Башня испытаний",forge:"⚒ Кузница",guild:"🏰 Гильдия",don:"💎 Магазин",arena:"⚔️ Арена"};
   const head=WIN[tab]?'<div class="tabs"><b style="padding:6px 8px;font-size:15px;color:#ffd98a;flex:1">'+WIN[tab]+'</b><button data-a="close">✕</button></div>':tab==="bt"?'<div class="tabs"><b style="padding:6px 8px">⚔️ Арена</b></div>':tab==="tut"?'<div class="tabs"><b style="padding:6px 8px">Как играть</b></div>':tab==="rename"?'<div class="tabs"><button data-t="team">← Назад</button></div>':tab==="pick"?(s.heroes.length?'<div class="tabs"><button data-a="close">✕ Закрыть</button></div>':'<div class="tabs"><b style="padding:6px 8px">Выбери героя</b></div>'):'<div class="tabs">'+T.map(t=>'<button data-t="'+t[0]+'"'+(t[0]===tab?' class="on"':"")+">"+t[1]+"</button>").join("")+'<button data-a="close">✕</button></div>';
   const sh=$("sh"),ob=sh.querySelector(".body"),ot=sh.querySelector(".tabs"),sy=ob&&lastTab===tab?ob.scrollTop:0,sx=ot&&!WIN[tab]&&!WIN[lastTab]?ot.scrollLeft:0;lastTab=tab;
   sh.innerHTML=head+'<div class="body">'+b+"</div>";
@@ -2668,7 +2687,7 @@ const ACT={
   equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=it.t==="w"?"lw":"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
   sell(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);s.gold+=it.v*6;},
   claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");notify("daily","🎁 Награда за день "+n+" получена. Завтра будет новая!");},
-  chest(){openChest();},phatch(){petHatch();},pbuy(){petBuy();},pact(i){petSet(i);},pup(i){petUp(i);},parm(i){petArmUp(i);},pstar(i){petStar(i);},tal(k){const h=sel();if(!h||talPts(h)<1||tlv(h,k)>=10)return;h.tl=h.tl||{};h.tl[k]=tlv(h,k)+1;SFX.chest();},talreset(){const h=sel();if(!h||s.gold<h.lvl*200)return;s.gold-=h.lvl*200;h.tl={};},gcreate(){const n=($("gn")&&$("gn").value||"").trim();if(m.cr<50)return;gFetch("/guild/create",{name:n},j=>{if(j.ok){m.cr-=50;gd=j;applyPerk();gMsg="Гильдия создана!";}else gMsg=GERR[j.error]||"Не удалось создать гильдию.";});},gjoin(id){gFetch("/guild/join",{gid:id},j=>{if(j.ok){gd=j;applyPerk();gMsg="Ты вступил в гильдию!";}else gMsg=GERR[j.error]||"Не удалось вступить.";});},gleave(){gFetch("/guild/leave",{},j=>{gd=j;applyPerk();gMsg="Ты покинул гильдию.";});},wbgo(){if(s.wb||s.tw)return;gFetch("/wb/start",{},j=>{if(j.ok){s.wb={t:0,max:12,hp0:j.hp,max0:j.max,zi:j.zi};$("sheet").hidden=true;spawn();log("🌍 Бой с мировым боссом начался: 12 ходов!");save();draw();}else{wMsg=j.dead?"Босс уже повержен — возвращайся завтра.":j.limit?"Попытки на сегодня закончились.":"Не удалось начать бой.";wbd=null;}});},wbclaim(){gFetch("/wb/claim",{},j=>{if(j.ok){wMsg="Награда получена: "+wbReward(j.d,j.killed,j.rank);SFX.chest();if(wbd&&wbd.y)wbd.y.cl=true;save();draw();}else wMsg="Награда уже получена или недоступна.";});},twgo(i){if(s.tw)return;s.tw=Math.max(1,+i);spawn();$("sheet").hidden=true;log("🗼 Вы вошли в башню: этаж "+s.tw);},twout(){if(!s.tw)return;s.tw=0;spawn();log("🚪 Вы вышли из башни.");},smelt(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);m.res.ore+=ORE(it.r);},temper(k){const h=sel();if(!h)return;const key=k==="w"?"tm":"ta",l=h[key]|0;if(l>=25||m.res.ore<tmC(l))return;m.res.ore-=tmC(l);h[key]=l+1;SFX.chest();},craft(i){i=+i;const q=i>>1,w=!(i&1);if(m.res.ore<CRC[q])return;m.res.ore-=CRC[q];const it={t:w?"w":"a",r:q,v:Math.round((4+s.stage**.6)*RAR[q][2]*(w?1:.8)),n:(w?LW:LA)[rnd(0,3)]};s.inv.push(it);SFX.chest();log("⚒ Выкован предмет: "+it.n);},bclaim(k){const x=BSM.find(a=>a[0]===+k);if(!x||m.bc[x[0]]||Object.keys(m.bes).length<x[0])return;m.bc[x[0]]=1;m.cr+=x[1];SFX.chest();log("📖 Бестиарий: +"+x[1]+" 💎");},pgo(i){petGo(+i);},shbuy(i){shBuy(i);},shdaily(){gFetch("/shop/claim",{daily:1},shApply);},pclaim(){petClaim();},
+  chest(){openChest();},phatch(){petHatch();},pbuy(){petBuy();},pact(i){petSet(i);},pup(i){petUp(i);},parm(i){petArmUp(i);},pstar(i){petStar(i);},tal(k){const h=sel();if(!h||talPts(h)<1||tlv(h,k)>=10)return;h.tl=h.tl||{};h.tl[k]=tlv(h,k)+1;SFX.chest();},talreset(){const h=sel();if(!h||s.gold<h.lvl*200)return;s.gold-=h.lvl*200;h.tl={};},gcreate(){const n=($("gn")&&$("gn").value||"").trim();if(m.cr<50)return;gFetch("/guild/create",{name:n},j=>{if(j.ok){m.cr-=50;gd=j;applyPerk();gMsg="Гильдия создана!";}else gMsg=GERR[j.error]||"Не удалось создать гильдию.";});},gjoin(id){gFetch("/guild/join",{gid:id},j=>{if(j.ok){gd=j;applyPerk();gMsg="Ты вступил в гильдию!";}else gMsg=GERR[j.error]||"Не удалось вступить.";});},gleave(){gFetch("/guild/leave",{},j=>{gd=j;applyPerk();gMsg="Ты покинул гильдию.";});},wbgo(){if(s.wb||s.tw)return;gFetch("/wb/start",{},j=>{if(j.ok){s.wb={t:0,max:12,hp0:j.hp,max0:j.max,zi:j.zi};$("sheet").hidden=true;spawn();log("🌍 Бой с мировым боссом начался: 12 ходов!");save();draw();}else{wMsg=j.dead?"Босс уже повержен — возвращайся завтра.":j.limit?"Попытки на сегодня закончились.":"Не удалось начать бой.";wbd=null;}});},wbclaim(){gFetch("/wb/claim",{},j=>{if(j.ok){wMsg="Награда получена: "+wbReward(j.d,j.killed,j.rank);SFX.chest();if(wbd&&wbd.y)wbd.y.cl=true;save();draw();}else wMsg="Награда уже получена или недоступна.";});},twgo(i){if(s.tw)return;s.tw=Math.max(1,+i);spawn();$("sheet").hidden=true;log("🗼 Вы вошли в башню: этаж "+s.tw);},twout(){if(!s.tw)return;s.tw=0;spawn();log("🚪 Вы вышли из башни.");},smelt(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);m.res.ore+=ORE(it.r);},temper(k){const h=sel();if(!h)return;const key=k==="w"?"tm":"ta",l=h[key]|0;if(l>=25||m.res.ore<tmC(l))return;m.res.ore-=tmC(l);h[key]=l+1;SFX.chest();},craft(i){i=+i;const q=i>>1,w=!(i&1);if(m.res.ore<CRC[q])return;m.res.ore-=CRC[q];const it={t:w?"w":"a",r:q,v:Math.round((4+s.stage**.6)*RAR[q][2]*(w?1:.8)),n:(w?LW:LA)[rnd(0,3)]};s.inv.push(it);SFX.chest();log("⚒ Выкован предмет: "+it.n);},bclaim(k){const x=BSM.find(a=>a[0]===+k);if(!x||m.bc[x[0]]||Object.keys(m.bes).length<x[0])return;m.bc[x[0]]=1;m.cr+=x[1];SFX.chest();log("📖 Бестиарий: +"+x[1]+" 💎");},pgo(i){petGo(+i);},shbuy(i){shBuy(i);},aseason(){gFetch("/arena/claim",{},j=>{if(j&&j.ok){m.cr+=j.cr;if(arena&&arena.ss)arena.ss.cl=true;log("🏆 Награда арены за неделю: +"+j.cr+" 💎 (место #"+j.rank+")");SFX.chest();save();draw();}});},alg(i){const L=LG[+i];if(!L||!arena||!arena.me||arena.me.rating<L[1]||m.al[i])return;m.al[i]=1;m.cr+=L[2];log("🏅 Награда лиги «"+L[0]+"»: +"+L[2]+" 💎");SFX.chest();},shdaily(){gFetch("/shop/claim",{daily:1},shApply);},pclaim(){petClaim();},
   och(i){openCh(+i);},
   bch(i){i=+i;if(m.cr<CHP[i])return;m.cr-=CHP[i];m.ch[i]++;chestMsg="Куплен: "+CHI[i]+" "+CHN[i]+" сундук. Нажми «Открыть».";},
   g2c(n){n=+n;if(s.gold<n*1000)return;s.gold-=n*1000;m.cr+=n;m.xc=1;checkAch();chestMsg="Обмен: −"+n*1000+" 💰, +"+n+" 💎";},
@@ -2704,7 +2723,7 @@ $("bSkill").onclick=()=>swing(sel());
 $("bPot").onclick=()=>act("pot");
 $("bFeed").onclick=()=>act("feed");
 $("bCh").onclick=()=>openSheet("chest");
-$("side").onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(b&&b.dataset.w)openSheet(b.dataset.w);};
+$("side").onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(b&&b.dataset.w){if(b.dataset.w==="arena")fetchArena();openSheet(b.dataset.w);}};
 $("bAuto").onclick=()=>{auto=!auto;$("aut").textContent=auto?"вкл":"выкл";$("bAuto").style.background=auto?"#2f8a3e":"";};
 setInterval(()=>{try{
   if(!auto||!$("sheet").hidden||Date.now()<busyUntil||!s.heroes.some(h=>h.hp>0))return;

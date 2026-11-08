@@ -305,6 +305,70 @@ async def stats(request: web.Request):
                               "активных_за_24ч": await count_since("seen", now - 86400), "активных_за_7д": await count_since("seen", now - 7 * 86400)})
 
 
+# ---------- арена: сезоны, реванш ----------
+SEASON_TOP = 30
+
+
+def week_key():
+    return int((time.time() - 4 * 86400) // 604800)  # неделя начинается в понедельник (UTC)
+
+
+def season_reward(rank):
+    return 300 if rank == 1 else 200 if rank == 2 else 150 if rank == 3 else 80 if rank <= 10 else 30 if rank <= SEASON_TOP else 0
+
+
+async def season_roll():
+    """В начале новой недели фиксирует таблицу лидеров прошлой недели (награды можно забрать один раз)."""
+    w = week_key()
+    async with kv_lock:
+        ss = await kv_get("arena:season")
+        if not isinstance(ss, dict) or "w" not in ss:
+            ss = {"w": w, "prev": None}
+            await kv_put("arena:season", ss)
+        elif ss["w"] != w:
+            top = await top_rating(SEASON_TOP)
+            ss = {"w": w, "prev": {"w": ss["w"], "r": [[t["uid"], t["name"], t.get("rating", 1000)] for t in top], "cl": {}}}
+            await kv_put("arena:season", ss)
+    return ss
+
+
+def season_info(ss, uid):
+    out = {"left": int(604800 - (time.time() - 4 * 86400) % 604800)}
+    pv = ss.get("prev")
+    if pv:
+        rank = next((i + 1 for i, r in enumerate(pv["r"]) if r[0] == uid), 0)
+        out.update({"rank": rank, "rew": season_reward(rank) if rank else 0, "cl": str(uid) in pv["cl"]})
+    return out
+
+
+async def revenge_add(victim, attacker, name):
+    """Запоминает, кто победил игрока на арене (для реванша)."""
+    async with kv_lock:
+        lst = await kv_get("av:%d" % victim)
+        lst = [x for x in (lst if isinstance(lst, list) else []) if x.get("u") != attacker]
+        lst.insert(0, {"u": attacker, "n": name, "t": int(time.time())})
+        await kv_put("av:%d" % victim, lst[:5])
+
+
+async def revenge_done(uid, target):
+    async with kv_lock:
+        lst = await kv_get("av:%d" % uid)
+        if isinstance(lst, list) and any(x.get("u") == target for x in lst):
+            await kv_put("av:%d" % uid, [x for x in lst if x.get("u") != target])
+
+
+async def revenge_list(uid):
+    async with kv_lock:
+        lst = await kv_get("av:%d" % uid)
+    out = []
+    for x in (lst if isinstance(lst, list) else []):
+        o = await db_get(x["u"])
+        if o and o.get("squad"):
+            out.append({"uid": o["uid"], "name": o.get("name") or x.get("n", "Игрок"), "rating": o.get("rating", 1000), "pw": power(o["squad"]),
+                        "w": o.get("wins", 0), "l": o.get("losses", 0)})
+    return out
+
+
 async def arena_state(request: web.Request):
     try:
         body = await request.json()
@@ -340,7 +404,13 @@ async def arena_state(request: web.Request):
         items.append({"uid": b["uid"], "name": b["name"], "rating": b["rating"], "pw": power(b["squad"]), "w": 0, "l": 0})
         k += 1
     tops = await top_rating(10)
-    return web.json_response({"me": {"rating": rating, "rank": await rank_rating(row), "left": max(0, ARENA_DAILY - used), "w": row.get("wins", 0), "l": row.get("losses", 0)},
+    try:
+        ss = season_info(await season_roll(), uid)
+        rev = await revenge_list(uid)
+    except Exception as e:
+        print("arena extra", e)
+        ss, rev = {}, []
+    return web.json_response({"ss": ss, "rev": rev, "me": {"rating": rating, "rank": await rank_rating(row), "left": max(0, ARENA_DAILY - used), "w": row.get("wins", 0), "l": row.get("losses", 0)},
                               "opps": items, "top": [{"n": t["name"], "r": t.get("rating", 1000), "me": t["uid"] == uid} for t in tops], "db": bool(SB_URL)})
 
 
@@ -367,6 +437,11 @@ async def arena_fight(request: web.Request):
         if not opp or not opp.get("squad") or target == uid:
             return web.json_response({"error": "gone"})
     await db_put(uid, day=day_key(), used=used + 1)
+    if target > 0:
+        try:
+            await revenge_done(uid, target)
+        except Exception as e:
+            print("revenge_done", e)
     pending[uid] = {"opp": opp["uid"], "name": opp["name"], "orating": opp.get("rating", 1000), "t": time.time()}
     return web.json_response({"opp": {"uid": opp["uid"], "name": opp["name"], "rating": opp.get("rating", 1000), "squad": opp["squad"]}, "left": ARENA_DAILY - used - 1})
 
@@ -394,6 +469,11 @@ async def arena_result(request: web.Request):
         if o:
             od = -round(d * 0.5) if win else round(-d * 0.5)
             await db_put(p["opp"], rating=max(0, o.get("rating", 1000) + od))
+            if win:
+                try:
+                    await revenge_add(p["opp"], uid, (u.get("first_name") or "Игрок")[:20])
+                except Exception as e:
+                    print("revenge_add", e)
             try:
                 nm = (u.get("first_name") or "Игрок")[:20]
                 txt = ("🛡️ %s атаковал твой отряд на арене и проиграл. Рейтинг: %+d" % (nm, od)) if not win else ("⚔️ %s атаковал твой отряд на арене и победил. Рейтинг: %+d" % (nm, od))
@@ -690,6 +770,20 @@ async def shop_claim(uid, name, body):
     return out
 
 
+@api
+async def arena_claim(uid, name, body):
+    ss = await kv_get("arena:season")
+    pv = ss.get("prev") if isinstance(ss, dict) else None
+    if not pv:
+        return {"ok": 0}
+    rank = next((i + 1 for i, r in enumerate(pv["r"]) if r[0] == uid), 0)
+    if not rank or str(uid) in pv["cl"]:
+        return {"ok": 0}
+    pv["cl"][str(uid)] = 1
+    await kv_put("arena:season", ss)
+    return {"ok": 1, "rank": rank, "cr": season_reward(rank)}
+
+
 def g_perk(n):
     return 15 if n >= 10 else 10 if n >= 6 else 5 if n >= 3 else 0
 
@@ -928,7 +1022,7 @@ async def main():
     app.router.add_post("/arena/fight", arena_fight)
     app.router.add_post("/arena/result", arena_result)
     for p, h in (("/guild/me", guild_me), ("/guild/create", guild_create), ("/guild/join", guild_join), ("/guild/leave", guild_leave),
-                 ("/shop/invoice", shop_invoice), ("/shop/state", shop_state), ("/shop/claim", shop_claim),
+                 ("/arena/claim", arena_claim), ("/shop/invoice", shop_invoice), ("/shop/state", shop_state), ("/shop/claim", shop_claim),
                  ("/wb/state", wb_state_api), ("/wb/start", wb_start), ("/wb/hit", wb_hit), ("/wb/claim", wb_claim)):
         app.router.add_post(p, h)
         app.router.add_route("OPTIONS", p, health)
