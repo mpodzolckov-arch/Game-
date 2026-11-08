@@ -2522,6 +2522,14 @@ const st=document.createElement("style");st.textContent=`
 .hhire .tx{flex:1;min-width:0}.hhire .tx b{display:block;font:700 15px Georgia,serif;color:#f2d98a}.hhire .tx small{color:#9fb8a8;font-size:11px}
 .hhire button{font:700 11px Georgia,serif;padding:8px 10px;border-radius:9px;border:1.5px solid #05060a;color:#1a1004;background:linear-gradient(#ffe48a,#e0a828 60%,#9a6a10)}
 .hhire.n{border-color:#4a3a14;background:linear-gradient(135deg,#1c1618,#0b090c)}.hhire.n .pl{background:linear-gradient(135deg,#ffe48a,#e0a828 60%,#9a6a10);box-shadow:none}.hhire.n .pl:after{content:"🔓";font-size:18px;transform:rotate(-45deg)}.hhire.n .pl{font-size:0}
+.pkg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0}
+.gc{position:relative;border-radius:12px;padding:7px 3px 8px;text-align:center;background:linear-gradient(#1a1618,#0a080c);border:2px solid #4a3a14;box-shadow:inset 0 0 18px #000,0 3px 8px #000a;color:#e8dcc0;display:block;width:100%}
+.gc .pt{width:60px;height:78px;margin:0 auto 4px;border-radius:30px 30px 7px 7px;position:relative;background:linear-gradient(#10181a,#050809);border:2px solid #3a2e10;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.gc .pt:before{content:"";position:absolute;left:50%;top:22%;width:76px;height:76px;margin-left:-38px;border-radius:50%;background:radial-gradient(var(--g,#555),transparent 70%);opacity:.55}
+.gc .pt svg{height:66px;width:auto;margin-bottom:4px;position:relative;overflow:visible}
+.gc b{display:block;font:700 12px Georgia,serif;color:#f2d98a;line-height:1.15}.gc small{display:block;font:9px Georgia,serif;letter-spacing:1px;color:#8a7a66;margin-top:2px}
+.gc.dv{border-color:#fff1b8;box-shadow:inset 0 0 18px #000,0 0 12px rgba(255,241,184,.45)}.gc.dv small{color:#ffe9a0}
+.gc.lk .pt svg{filter:brightness(.3) grayscale(1)}.gc .lock{position:absolute;left:0;right:0;top:30px;font-size:22px}.gc .pr{margin-top:3px;font:700 11px Georgia,serif;color:#ff8a8a}
 .hcht{font:700 11px Georgia,serif;letter-spacing:3px;color:#8fa694;text-align:center;margin:10px 0 2px}
 `;document.head.appendChild(st);
 const GL={warrior:'#e8c868',mage:'#6a9aff',archer:'#7aff6a',assassin:'#ff4a4a',medic:'#7affc8',wmage:'#4ad8ff',fmage:'#ff7a2a',witch:'#a0ff4a',fairy:'#ff7ae8',swordsman:'#fff1b8',lightning:'#ffe84a',angel:'#fff1b8',samurai:'#ff5a5a',druid:'#9aff4a',pirate:'#ffb04a',necro:'#6aff9a',hunter:'#ff8a3a',bard:'#c070ff'};
@@ -2540,6 +2548,72 @@ window.teamRender=function(){
  if(Object.keys(CL).some(c=>!allH().some(x=>x.cls===c)))b+='<div class="hhire"><div class="pl"></div><div class="tx"><b>Нанять героя</b><small>в отряд, если есть место, иначе в запас</small></div><button data-a="recruit">Выбрать</button></div>';
  b+=m.slots<MAXS?'<div class="hhire n"><div class="pl"></div><div class="tx"><b>Ячейка героя</b><small>в отряде до '+MAXS+' героев. Открыто: '+m.slots+'</small></div><button data-a="slot"'+(m.cr<SLOT?" disabled":"")+'>♦️ '+SLOT+'</button></div>':'<div class="hcht">ВСЕ '+MAXS+' ЯЧЕЙКИ ОТКРЫТЫ</div>';
  b+=row("🔄 Новая игра","кристаллы, скины, ячейки и эксклюзивы сохранятся","Начать","newgame");
+ return b};
+
+window.pickRender=function(){
+ const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
+ let b='<div class="tmh"><b>НАЙМ ГЕРОЕВ</b><small>ВЫБЕРИ НОВОГО БОЙЦА</small></div>';
+ if(!left.length)return b+row("Все герои уже в твоей команде","");
+ return b+'<div class="pkg">'+left.map(c=>{const d=CL[c],lock=d.pr&&!m.unl[c];return '<button class="gc'+(d.dv?" dv":"")+(lock?" lk":"")+'" data-a="pick" data-i="'+c+'" style="--g:'+(GL[c]||"#888")+'"><div class="pt">'+heroArt(c,-1,-1)+'</div><b>'+d.n+'</b><small>'+(d.dv?"БОЖЕСТВЕННЫЙ":(d.sk||"").toUpperCase().slice(0,16))+'</small>'+(lock?'<div class="lock">🔒</div><div class="pr">♦️ '+d.pr+'</div>':'')+'</button>'}).join("")+'</div>'};
+}catch(e){}})();
+// ===== АРЕНА И ЛИГИ В НОВОМ СТИЛЕ =====
+(function(){try{
+const st=document.createElement("style");st.textContent=`
+.lgh{display:flex;gap:12px;align-items:center;padding:12px;margin:4px 0 8px;border-radius:14px;background:linear-gradient(135deg,#1c1618,#0b090c);border:2px solid #5a4416;box-shadow:inset 0 0 26px #000a,0 4px 10px #0009}
+.lgh .bd{width:78px;flex:none;filter:drop-shadow(0 0 10px var(--lc))}.lgh .bd svg{width:100%;display:block}
+.lgh .tx{flex:1;min-width:0}.lgh .tx b{display:block;font:700 19px Georgia,serif;color:#f2d98a;letter-spacing:1px;text-shadow:0 1px 0 #000}
+.lgh .tx .rt{font:700 13px Georgia,serif;color:#e8dcc0;margin:2px 0 6px}.lgh .tx small{display:block;font:11px Georgia,serif;color:#9a8a76;margin-top:5px}
+.lgh .pb{height:9px;border-radius:5px;background:#0a0a0c;border:1px solid #000;box-shadow:inset 0 1px 3px #000;overflow:hidden}.lgh .pb i{display:block;height:100%;background:linear-gradient(#9affd8,#1ed890 60%,#06603e)}
+.arn{display:flex;gap:10px;align-items:center;padding:9px;margin:7px 0;border-radius:13px;background:linear-gradient(135deg,#1c1618,#0b090c);border:2px solid #4a3a14;box-shadow:inset 0 0 22px #000a,0 3px 8px #0009}
+.arn.rv{border-color:#8a2a2a}.arn .bd{width:38px;flex:none}.arn .bd svg{width:100%;display:block}
+.arn .in{flex:1;min-width:0}.arn .in b{display:block;font:700 14px Georgia,serif;color:#f2d98a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.arn .in small{display:block;font:11px Georgia,serif;color:#9a8a76;margin-top:2px}
+.arn button{font:700 12px Georgia,serif;padding:9px 12px;border-radius:9px;border:1.5px solid #05060a;color:#1a1004;background:linear-gradient(#ffe48a,#e0a828 60%,#9a6a10);box-shadow:inset 0 1px 0 #fff8,0 2px 0 #4a3008;flex:none}
+.arn button:disabled{background:linear-gradient(#2a2c30,#14161a);color:#7a7a7a;border-color:#3a3a3a;box-shadow:none}
+.arn button.rd{background:linear-gradient(#ff8a7a,#c02a2a 60%,#6a0e14);color:#fff}
+.lgt{display:flex;gap:6px;margin:6px 0}.lgt>div{flex:1;text-align:center;padding:8px 2px;border-radius:11px;background:linear-gradient(#1a1618,#0a080c);border:2px solid #3a2e10;position:relative}
+.lgt>div.cur{border-color:#e8c868;box-shadow:0 0 12px rgba(255,200,90,.4)}.lgt .bd{width:46px;margin:0 auto}.lgt .bd svg{width:100%;display:block}
+.lgt.lkd .bd{filter:grayscale(1) brightness(.45)}.lgt b{display:block;font:700 10px Georgia,serif;color:#f2d98a;margin-top:3px}.lgt small{display:block;font:10px Georgia,serif;color:#9a8a76}
+.lgt button{margin-top:5px;width:100%;font:700 10px Georgia,serif;padding:5px 0;border-radius:7px;border:1.5px solid #05060a;color:#1a1004;background:linear-gradient(#ffe48a,#e0a828 60%,#9a6a10)}.lgt button:disabled{background:#1a1c1e;color:#6a6a6a;border-color:#2a2a2a}
+.tpr{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:4px 0;border-radius:10px;background:linear-gradient(#171315,#0c0a0d);border:1px solid #3a2e10;font:13px Georgia,serif;color:#e8dcc0}.tpr.me{border-color:#e8c868;background:linear-gradient(#2a2210,#140f08)}.tpr .bd{width:22px}.tpr .bd svg{width:100%;display:block}.tpr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tpr b{color:#f2d98a}
+`;document.head.appendChild(st);
+// значки лиг: бронза, серебро, золото, платина, алмаз
+const PAL=[["#e8a468","#a8602a","#4a2410","#f2c898"],["#f4f6fa","#a8b0bc","#4a5260","#ffffff"],["#fff0a0","#e0a828","#7a4a08","#fff8c8"],["#d8fcff","#6ad0e8","#1a6a88","#ffffff"],["#ffb8c0","#e8283c","#6a0818","#ffe8ea"]];
+const LC=["#e8a468","#cfd6e0","#ffd24a","#6ad8ff","#ff4a5c"];
+let bu=0;
+window.lgBadge=function(i){i=Math.max(0,Math.min(4,i|0));const p=PAL[i],u="lb"+i+"_"+(bu++);const O='stroke="#05060a" stroke-width="3" stroke-linejoin="round"';
+ const grad=(id,a,b,c)=>'<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+a+'"/><stop offset=".5" stop-color="'+b+'"/><stop offset="1" stop-color="'+c+'"/></linearGradient>';
+ let o='<svg viewBox="0 0 80 96" xmlns="http://www.w3.org/2000/svg"><defs>'+grad(u+"a",p[0],p[1],p[2])+grad(u+"b",p[2],"#0a0a0c","#050506")+grad(u+"c",p[3],p[0],p[1])+'</defs>';
+ // крылья (с серебра)
+ if(i>=1){const w=(s)=>'<g transform="translate(40 40) scale('+s+' 1)">';
+  [-1,1].forEach(s=>{o+=w(s)+'<path d="M26 -6 C46 -22 62 -16 70 -28 C66 -6 58 6 40 16 C46 6 40 0 30 6Z" fill="url(#'+u+'a)" '+O+'/><path d="M34 0 C48 -6 58 -8 64 -16 M32 8 C44 6 52 2 58 -4" stroke="'+p[2]+'" stroke-width="1.6" fill="none"/></g>'})}
+ // щит
+ o+='<path d="M40 6 L66 14 C68 44 60 68 40 90 C20 68 12 44 14 14Z" fill="url(#'+u+'a)" '+O+'/>';
+ o+='<path d="M40 14 L58 20 C59 44 53 62 40 78 C27 62 21 44 22 20Z" fill="url(#'+u+'b)" stroke="'+p[2]+'" stroke-width="2"/>';
+ o+='<path d="M40 8 L40 88" stroke="'+p[3]+'" stroke-width="1.2" opacity=".35"/><path d="M18 18 C18 40 22 56 30 70" stroke="#fff" stroke-width="2" fill="none" opacity=".35"/>';
+ // шевроны
+ const n=Math.min(3,i+1);if(i<4){for(let k=0;k<n;k++){const y=36+k*12-(n-1)*4;o+='<path d="M27 '+y+' L40 '+(y+10)+' L53 '+y+' L53 '+(y+6)+' L40 '+(y+16)+' L27 '+(y+6)+'Z" fill="url(#'+u+'c)" '+'stroke="#05060a" stroke-width="1.8" stroke-linejoin="round"/>'}}
+ // корона на золоте, звезда на платине, гем на алмазе
+ if(i===2)o+='<path d="M28 20 L32 10 L36 18 L40 8 L44 18 L48 10 L52 20Z" fill="url(#'+u+'c)" '+O.replace('3','2')+'/>';
+ if(i===3)o+='<path d="M40 8 L43 17 L52 17 L45 23 L48 32 L40 26 L32 32 L35 23 L28 17 L37 17Z" fill="url(#'+u+'c)" stroke="#05060a" stroke-width="2" stroke-linejoin="round"/>';
+ if(i===4){o+='<path d="M40 24 L56 40 L40 74 L24 40Z" fill="url(#'+u+'c)" '+O.replace('3','2.4')+'/><path d="M24 40 L56 40 M40 24 L34 40 L40 74 M40 24 L46 40 L40 74" stroke="#05060a" stroke-width="1.4" fill="none" opacity=".6"/><path d="M30 38 L38 28" stroke="#fff" stroke-width="2.4" opacity=".8"/><circle cx="40" cy="48" r="16" fill="#ff4a5c" opacity=".35"/>';
+  o+='<path d="M30 14 L34 6 L38 12 L40 4 L42 12 L46 6 L50 14Z" fill="url(#'+u+'c)" stroke="#05060a" stroke-width="2" stroke-linejoin="round"/>'}
+ return o+'</svg>'};
+const pc=(a,b)=>Math.max(0,Math.min(100,a/b*100));
+window.arenaRender=function(me,md){
+ const li=lgOf(me.rating),nx=LG[li+1],cur=LG[li],nm=x=>x.replace(/^\S+\s/,"");
+ let b='<div class="tmh"><b>АРЕНА</b><small>БОИ ИГРОКОВ · РЕЙТИНГ И НАГРАДЫ</small></div>';
+ b+='<div class="lgh" style="--lc:'+LC[li]+'"><div class="bd">'+lgBadge(li)+'</div><div class="tx"><b>'+nm(cur[0]).toUpperCase()+'</b><div class="rt">Рейтинг '+me.rating+' · место #'+(me.rank||"—")+'</div>'+(nx?'<div class="pb"><i style="width:'+pc(me.rating-cur[1],nx[1]-cur[1])+'%"></i></div><small>до «'+nm(nx[0])+'»: '+(nx[1]-me.rating)+' очков</small>':'<small>максимальная лига</small>')+'<small>победы '+me.w+' · поражения '+me.l+' · боёв сегодня '+me.left+' из 5</small></div></div>';
+ if(!arena.db)b+='<div class="cht"><small>⚠️ без базы данных рейтинг пропадает при перезапуске сервера</small></div>';
+ const ss=arena.ss||{};
+ if(ss.rank&&ss.rew&&!ss.cl)b+='<div class="hhire"><div class="pl"></div><div class="tx"><b>Награда за неделю</b><small>место #'+ss.rank+' · ♦️ '+ss.rew+'</small></div><button data-a="aseason">Забрать</button></div>';
+ else if(ss.rank&&ss.cl)b+='<div class="hcht">НАГРАДА ЗА НЕДЕЛЮ ПОЛУЧЕНА · МЕСТО #'+ss.rank+'</div>';
+ if(ss.left)b+='<div class="cht"><small>⏳ Сезон: через '+dhm(ss.left)+' награды получат лучшие 30 игроков (🥇 300 · 🥈 200 · 🥉 150 · 4–10 места 80 · 11–30 места 30 ♦️)</small></div>';
+ const opp=(o,rv)=>'<div class="arn'+(rv?' rv':'')+'"><div class="bd">'+lgBadge(lgOf(o.rating))+'</div><div class="in"><b>'+(rv?'🔁 ':'🛡️ ')+esc(o.name)+'</b><small>рейтинг '+o.rating+' · сила '+o.pw+(o.uid<0?' · страж арены':'')+(o.w+o.l?' · '+o.w+'п/'+o.l+'пор':'')+'</small></div><button class="'+(rv?'rd':'')+'" data-a="afight" data-i="'+o.uid+'"'+(me.left<1?' disabled':'')+'>⚔ '+(rv?'МЕСТЬ':'БОЙ')+'</button></div>';
+ if((arena.rev||[]).length)b+='<div class="hcht">РЕВАНШ · ЭТИ ИГРОКИ ПОБЕДИЛИ ТЕБЯ</div>'+arena.rev.map(o=>opp(o,1)).join("");
+ b+='<div class="hcht">СОПЕРНИКИ</div>'+arena.opps.map(o=>opp(o,0)).join("")+'<div style="text-align:center;margin:4px 0"><button class="sm" data-a="arefresh" style="padding:8px 16px">🔄 Другие соперники</button></div>';
+ b+='<div class="hcht">НАГРАДЫ ЗА ЛИГИ · ОДИН РАЗ</div><div class="lgt">'+LG.map((l,k)=>{const ok=me.rating>=l[1],dn=m.al[k];return '<div class="'+(k===li?'cur ':'')+'"><div class="bd" style="'+(ok?'':'filter:grayscale(1) brightness(.45)')+'">'+lgBadge(k)+'</div><b>'+nm(l[0])+'</b><small>'+(k?'от '+l[1]:'старт')+'</small>'+(k?'<button data-a="alg" data-i="'+k+'"'+(!ok||dn?' disabled':'')+'>'+(dn?'✅':ok?'♦️ '+l[2]:'🔒 '+l[2])+'</button>':'')+'</div>'}).join("")+'</div>';
+ b+='<div class="hcht">ЛУЧШИЕ НА АРЕНЕ</div>'+arena.top.map((t,i)=>'<div class="tpr'+(t.me?' me':'')+'"><b>'+(md[i]||"#"+(i+1))+'</b><div class="bd">'+lgBadge(lgOf(t.r))+'</div><span>'+esc(t.n)+'</span><b>'+t.r+'</b></div>').join("");
+ b+='<div class="cht"><small>Твой отряд на арене — тот, что в бою сейчас. Победа: +3 ♦️. Защитник получит уведомление в бот.</small></div>';
  return b};
 }catch(e){}})();
 const slowTurns=h=>{const r=h.lvl/(h.lvl+s.stage*.6+1);let t=Math.round(2+5*r+.5*(h.sl|0));if(en.boss)t=Math.round(t*.6);return Math.max(1,Math.min(10,t));};
@@ -2681,7 +2755,7 @@ function skinRows(h){
 function render(){
   const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["wb","🌍 Мировой босс"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
   let b="";
-  if(tab==="pick"){
+  if(tab==="pick"&&window.pickRender){b=pickRender();}else if(tab==="pick"){
     const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
     b=(left.length?left.map(c=>{const d=CL[c],lock=d.pr&&!m.unl[c];return row((d.dv?"👑 ":"")+d.i+" "+d.n,d.d,lock?"🔒 "+d.pr+" ♦️":"Выбрать","pick",false,c);}).join(""):row("Все герои уже в твоей команде",""));
   }else if(tab==="shop"&&h){
@@ -2739,7 +2813,7 @@ function render(){
     else if(arena.err)b=row("😴 Сервер не отвечает","он мог уснуть. Закрой вкладку и открой снова через минуту");
     else{
       const me=arena.me,md=["🥇","🥈","🥉"];
-      b='<div class="cht">⚔️ Рейтинг <b>'+me.rating+"</b> · место #"+(me.rank||"—")+" · побед "+me.w+" / поражений "+me.l+"<br>Боёв сегодня осталось: <b>"+me.left+"</b> из 5"+(arena.db?"":"<br><small>⚠️ без базы данных: рейтинг пропадает при перезапуске сервера</small>")+"</div>"+
+      b=window.arenaRender?arenaRender(me,md):'<div class="cht">⚔️ Рейтинг <b>'+me.rating+"</b> · место #"+(me.rank||"—")+" · побед "+me.w+" / поражений "+me.l+"<br>Боёв сегодня осталось: <b>"+me.left+"</b> из 5"+(arena.db?"":"<br><small>⚠️ без базы данных: рейтинг пропадает при перезапуске сервера</small>")+"</div>"+
         arenaExtra(me)+arena.opps.map(o=>rowB("🛡️ "+esc(o.name),"рейтинг "+o.rating+" · сила "+o.pw+(o.uid<0?" · страж арены":"")+(o.w+o.l?" · "+o.w+"п/"+o.l+"пор":""),[["⚔️ Бой","afight",o.uid,me.left<1]])).join("")+
         row("🔄 Другие соперники","","Обновить","arefresh")+arenaLeagues(me)+
         '<div class="cht">🏆 Лучшие на арене</div>'+arena.top.map((t,i)=>'<div class="r"'+(t.me?' style="background:#2a1f48;border-radius:8px;padding-left:8px"':"")+"><div>"+(md[i]||"#"+(i+1))+" "+esc(t.n)+"</div><b>"+t.r+"</b></div>").join("")+
