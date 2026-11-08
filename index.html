@@ -154,6 +154,8 @@ html,body{background:#0a0710}
 .pop.p{color:#ffb86b;font-size:20px}
 .pi{display:inline-block;width:34px;height:34px;vertical-align:middle;margin-right:4px}
 .pi svg{width:100%;height:100%}
+#pet .fig svg{height:calc(clamp(46px,9dvh,70px)*var(--ps,1))}
+#pet.p5 .fig{filter:drop-shadow(0 0 8px #ffd34a) drop-shadow(0 0 3px #fff2b0)}
 </style>
 </head>
 <body>
@@ -1099,26 +1101,317 @@ const EGGC=["#cfd6e4","#5ab0ff","#b36bff","#ffb02e","#ff4d6d"];
 const eggArt=(r)=>svg("0 0 60 70",qEL(30,64,18,4,"rgba(0,0,0,.35)","stroke=\"none\"")+qP("M30 4Q52 20 52 42Q52 62 30 62Q8 62 8 42Q8 20 30 4z","#f6efe0")+qP("M12 38Q20 30 30 38Q40 46 50 36Q52 40 52 44Q40 56 30 48Q20 40 10 48z",EGGC[r||0],"stroke=\"none\"")+qC(22,24,3,"#fff","stroke=\"none\" opacity=\".8\"")+qC(36,22,2,EGGC[r||0],"stroke=\"none\""));
 // id: [имя, редкость, роль, описание, база атаки]
 const PETS={
- wolf:["Волчонок",0,"atk","кусает врага каждый ход"],
- fox:["Лисёнок",0,"fox","кусает врага, иногда находит монеты"],
- slime:["Слизень",0,"slime","бьёт слабо, зато приносит золото"],
- owl:["Сова-целитель",1,"heal","каждые 3 хода лечит слабейшего героя"],
- turtle:["Черепашка-страж",1,"guard","снижает урон по отряду, слегка бьёт"],
- dragon:["Дракончик",2,"fire","огненный шар раз в 2 хода, поджигает"],
- phoenix:["Феникс",3,"phx","огонь, лечит отряд и воскрешает павших"],
- unicorn:["Единорог",4,"uni","радужная магия: лечит всех и усиливает удары"]
+ bear:["Медвежонок",0,"bear","удар лапой · навык «Рёв»: каждые 4 хода ослабляет врага"],
+ raven:["Ворон",0,"raven","клюёт врага, иногда крадёт золото · навык «Ослепление» каждые 4 хода"],
+ boar:["Кабан",1,"boar","навык «Таран»: каждые 3 хода мощный удар, враг медлит"],
+ frostwolf:["Ледяной волк",1,"frostwolf","навык «Ледяное дыхание»: каждые 3 хода урон и замедление врага"],
+ panther:["Пантера",2,"panther","навык «Теневой прыжок»: шанс крита ×2.4, раз в 5 ходов кровотечение"],
+ lion:["Лев",3,"lion","навык «Королевский рык»: каждые 4 хода лечит и усиливает отряд"],
+ griffin:["Грифон",3,"griffin","навык «Налёт»: каждые 3 хода пике ×2.4 и лечение слабейшего героя"],
+ dragon:["Дракон",4,"dragon","навык «Огненное дыхание»: шар и поджог, раз в 6 ходов «Инферно» ×2.6"]
 };
 const PIDS=Object.keys(PETS);
+// ===== питомцы v2: детали и броня =====
+const PAR=[["Без брони",null],["Кожаная","#9a6a34","#5a3a1a","#d8a860"],["Стальная","#b8c2d4","#6a7488","#eaf0fa"],["Золотая","#f5c542","#a8701c","#fff0a8"],["Мифриловая","#7ad0ff","#3a62b0","#e6f6ff"]];
+const PANC={ // голова [x,y,rx,ry], тело [x,y,rx,ry]
+ wolf:{h:[50,44,22,19],b:[48,70,26,18]},fox:{h:[50,44,22,18],b:[50,70,24,18]},slime:{h:[50,48,26,20],b:[50,82,30,14]},
+ owl:{h:[50,33,22,14],b:[50,70,24,20]},turtle:{h:[18,62,12,10],b:[52,60,32,22]},dragon:{h:[50,46,20,17],b:[50,68,22,22]},
+ phoenix:{h:[50,44,15,15],b:[50,64,18,22]},unicorn:{h:[54,48,19,17],b:[50,72,26,17]}};
+const PXT={
+ wolf:()=>qP("M30 30L24 36L32 36zM70 30L76 36L68 36z","#6b7690")+qP("M44 60L47 66L50 60L53 66L56 60z","#fff","stroke=\"none\"")+ST("M30 62l6 4M26 70l7 2M70 62l-6 4M74 70l-7 2","#6b7690",2.2)+qEL(40,36,6,3,"#b8c2d8","stroke=\"none\" opacity=\".6\""),
+ fox:()=>ST("M26 52l-12 -2M26 56l-12 3M74 52l12 -2M74 56l12 3","#fff4e0",1.4)+qEL(10,48,5,6,"#fff4e0","stroke=\"none\"")+qEL(40,34,7,3,"#ffc27a","stroke=\"none\" opacity=\".7\"")+qC(33,52,3.4,"#ff9a8a","stroke=\"none\" opacity=\".55\"")+qC(67,52,3.4,"#ff9a8a","stroke=\"none\" opacity=\".55\""),
+ slime:()=>qC(34,80,3.4,"#bff7d6","stroke=\"none\" opacity=\".8\"")+qC(62,84,2.4,"#bff7d6","stroke=\"none\" opacity=\".8\"")+qC(70,72,4.4,"#bff7d6","stroke=\"none\" opacity=\".6\"")+qP("M20 80Q22 90 30 88","#58d68d","stroke=\"none\"")+qC(30,44,2.6,"#fff","stroke=\"none\"")+qC(36,40,1.4,"#fff","stroke=\"none\"")+qC(34,64,3,"#ff9a9a","stroke=\"none\" opacity=\".5\"")+qC(66,64,3,"#ff9a9a","stroke=\"none\" opacity=\".5\""),
+ owl:()=>ST("M30 38Q38 34 44 40M70 38Q62 34 56 40","#5a4028",3)+qP("M50 8L44 20L56 20z","#8a6a45")+ST("M36 78l-3 8M42 82l-2 8","#c0a070",2),
+ turtle:()=>qP("M30 70L36 62L44 70L38 78z","#5aa06a","stroke=\"none\" opacity=\".6\"")+qP("M60 70L66 62L74 70L68 78z","#5aa06a","stroke=\"none\" opacity=\".6\"")+qP("M44 40L52 36L60 40L56 46L48 46z","#8bd89a","stroke=\"none\" opacity=\".7\"")+qC(13,59,1.8,"#fff","stroke=\"none\"")+ST("M12 66Q16 68 20 66","#2f5e3a",1.6),
+ dragon:()=>qP("M40 28L38 20L44 26zM50 24L50 14L55 24zM60 28L62 20L56 26z","#ffe2a8")+qP("M44 60L46 66L48 60zM52 60L54 66L56 60z","#fff","stroke=\"none\"")+ST("M50 90Q70 96 84 84Q88 80 82 78","#c0392b",5)+qP("M80 78L90 76L84 84z","#ffe2a8")+qEL(40,36,6,3,"#ff9a8a","stroke=\"none\" opacity=\".6\""),
+ phoenix:()=>ST("M44 90Q36 100 24 96M56 90Q64 100 76 96","#ff7a1a",3)+qP("M50 18L46 8L52 14L58 4L56 20z","#ffe27a")+qC(50,66,7,"#fff2b0","stroke=\"none\" opacity=\".7\"")+qC(30,26,2,"#ffe27a","stroke=\"none\"")+qC(72,18,1.6,"#ffe27a","stroke=\"none\""),
+ unicorn:()=>qP("M62 66l3 7l8 1l-6 5l2 8l-7-4l-7 4l2-8l-6-5l8-1z","#ffe27a","stroke=\"none\" opacity=\".85\"")+qC(30,22,1.6,"#fff","stroke=\"none\"")+qC(76,34,1.4,"#ffe27a","stroke=\"none\"")+qC(20,50,1.8,"#7ad0ff","stroke=\"none\"")+ST("M64 40Q70 36 74 40","#a070c0",1.6)
+};
+function parmor(id,t){
+  if(!t)return"";const a=PANC[id],c=PAR[t],M=c[1],D=c[2],H=c[3];
+  const [hx,hy,hrx,hry]=a.h,[bx,by,brx,bry]=a.b,S='stroke="#1b1226" stroke-width="2.2" stroke-linejoin="round"';
+  let o="";
+  // нагрудник
+  o+=`<ellipse cx="${bx}" cy="${by+bry*.1}" rx="${brx*.8}" ry="${bry*.62}" fill="${M}" ${S}/>`+
+     `<path d="M${bx-brx*.7} ${by-bry*.2}Q${bx} ${by-bry*.55} ${bx+brx*.7} ${by-bry*.2}" fill="none" stroke="${H}" stroke-width="2.4" stroke-linecap="round"/>`+
+     `<path d="M${bx-brx*.55} ${by+bry*.45}Q${bx} ${by+bry*.75} ${bx+brx*.55} ${by+bry*.45}" fill="none" stroke="${D}" stroke-width="2.4" stroke-linecap="round"/>`;
+  if(t>=2){o+=`<circle cx="${bx-brx*.9}" cy="${by-bry*.5}" r="${bry*.34}" fill="${M}" ${S}/><circle cx="${bx+brx*.9}" cy="${by-bry*.5}" r="${bry*.34}" fill="${M}" ${S}/>`;}
+  if(t>=3){o+=`<path d="M${bx-brx*.8} ${by+bry*.1}H${bx+brx*.8}" stroke="${D}" stroke-width="2.2"/>`;}
+  const gem=t===4?"#9af0ff":t===3?"#ff4d6d":t===2?"#ffcf3a":H;
+  o+=`<circle cx="${bx}" cy="${by+bry*.08}" r="${Math.max(3,bry*.2)}" fill="${gem}" ${S}/><circle cx="${bx-1}" cy="${by+bry*.08-1.2}" r="1.1" fill="#fff"/>`;
+  // шлем: купол над глазами
+  const y0=hy-hry*.28,top=hy-hry*1.22;
+  o+=`<path d="M${hx-hrx*1.02} ${y0}Q${hx-hrx*1.1} ${top} ${hx} ${top}Q${hx+hrx*1.1} ${top} ${hx+hrx*1.02} ${y0}Q${hx} ${y0+hry*.25} ${hx-hrx*1.02} ${y0}z" fill="${M}" ${S}/>`+
+     `<path d="M${hx-hrx*.8} ${y0-hry*.1}Q${hx} ${y0+hry*.12} ${hx+hrx*.8} ${y0-hry*.1}" fill="none" stroke="${D}" stroke-width="2.2" stroke-linecap="round"/>`+
+     `<path d="M${hx-hrx*.5} ${top+hry*.25}Q${hx-hrx*.25} ${top+hry*.1} ${hx} ${top+hry*.12}" fill="none" stroke="${H}" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>`;
+  if(t>=2)o+=`<path d="M${hx} ${top}V${y0}" stroke="${D}" stroke-width="2.4"/><path d="M${hx} ${top+1}Q${hx+hrx*.5} ${top-hry*.45} ${hx+hrx*.15} ${top-hry*.9}Q${hx-hrx*.2} ${top-hry*.5} ${hx-hrx*.05} ${top+1}z" fill="${t===3?"#e0443a":t===4?"#7a5cff":"#c8362f"}" ${S}/>`;
+  if(t>=3)o+=`<path d="M${hx-hrx*1.02} ${y0}Q${hx-hrx*1.4} ${y0-hry*.6} ${hx-hrx*1.25} ${y0-hry*1.1}Q${hx-hrx*.95} ${y0-hry*.5} ${hx-hrx*.8} ${y0-hry*.2}zM${hx+hrx*1.02} ${y0}Q${hx+hrx*1.4} ${y0-hry*.6} ${hx+hrx*1.25} ${y0-hry*1.1}Q${hx+hrx*.95} ${y0-hry*.5} ${hx+hrx*.8} ${y0-hry*.2}z" fill="${H}" ${S}/>`;
+  if(t===4)o+=`<circle cx="${hx}" cy="${top+hry*.45}" r="${hry*.2}" fill="#9af0ff" ${S}/>`+`<ellipse cx="${bx}" cy="${by}" rx="${brx*1.2}" ry="${bry*1.1}" fill="#7ad0ff" opacity=".18"/>`;
+  return o;
+}
+const PB=(id,t)=>PA[id]().replace(/<\/g><\/svg>$/,PXT[id]()+parmor(id,t|0)+"</g></svg>");
+// ===== питомцы v3: реалистичный стиль, новый набор =====
+let TXM="fur",_sd=7,_uid=0;
+const rnd1=()=>{_sd=(_sd*16807)%2147483647;return(_sd-1)/2147483646;};
+const GR={};
+const rv=(id,a,b,cx=".35",cy=".3")=>{GR[id]=[a,b];return `<radialGradient id="${id}" cx="${cx}" cy="${cy}" r=".85"><stop offset="0" stop-color="${a}"/><stop offset=".55" stop-color="${b}" stop-opacity="1"/><stop offset="1" stop-color="${b}"/></radialGradient>`;};
+const lv=(id,a,b,v)=>{GR[id]=[a,b];return `<linearGradient id="${id}" x1="0" y1="0" x2="${v?1:0}" y2="${v?0:1}"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;};
+const K="#0c0710",OS=`stroke="${K}" stroke-opacity=".5" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"`;
+const SHG='<linearGradient id="shg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient>';
+const mix=(a,b,k)=>{const f=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const x=f(a),y=f(b);return"#"+x.map((v,i)=>Math.round(v+(y[i]-v)*k).toString(16).padStart(2,"0")).join("");};
+function texture(shape,fill,kind){
+  const m=/url\(#(\w+)\)/.exec(fill);if(!m||!GR[m[1]]||kind==="none")return"";
+  const nums=(shape.d||"").match(/-?\d+\.?\d*/g);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  if(shape.d){for(let k=0;k+1<nums.length;k+=2){const x=+nums[k],y=+nums[k+1];x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}}
+  else{x0=shape.x-shape.a;x1=shape.x+shape.a;y0=shape.y-shape.b;y1=shape.y+shape.b;}
+  const w=x1-x0,h=y1-y0;if(w<8||h<8)return"";
+  const[c1,c2]=GR[m[1]],dk=mix(c2,"#000000",.45),lt=mix(c1,"#ffffff",.38),mid=mix(c1,c2,.5),cid="cp"+(_uid++);
+  const n=Math.max(18,Math.min(kind==="scale"?90:230,Math.round(w*h/(kind==="feather"?26:15))));
+  let s="";
+  for(let k=0;k<n;k++){
+    const x=x0+rnd1()*w,y=y0+rnd1()*h,r=rnd1(),col=r<.38?dk:r<.72?lt:mid,op=(.28+rnd1()*.4).toFixed(2);
+    if(kind==="scale"){const q=3+rnd1()*2.2;s+=`<path d="M${(x-q).toFixed(1)} ${y.toFixed(1)}Q${x.toFixed(1)} ${(y+q*1.1).toFixed(1)} ${(x+q).toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${r<.5?dk:lt}" stroke-width=".9" opacity="${op}"/>`;}
+    else{const L=kind==="feather"?5+rnd1()*6:2.6+rnd1()*3.4,a=(kind==="feather"?35:60)*Math.PI/180+(rnd1()-.5)*.9,ex=x+Math.cos(a)*L,ey=y+Math.sin(a)*L;
+      s+=`<path d="M${x.toFixed(1)} ${y.toFixed(1)}Q${((x+ex)/2+(rnd1()-.5)*1.4).toFixed(1)} ${((y+ey)/2).toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${col}" stroke-width="${(.55+rnd1()*.55).toFixed(2)}" stroke-linecap="round" opacity="${op}"/>`;}
+  }
+  const clip=shape.d?`<path d="${shape.d}"/>`:`<ellipse cx="${shape.x}" cy="${shape.y}" rx="${shape.a}" ry="${shape.b}"/>`;
+  const sh=shape.d?`<path d="${shape.d}" fill="url(#shg)"/>`:`<ellipse cx="${shape.x}" cy="${shape.y}" rx="${shape.a}" ry="${shape.b}" fill="url(#shg)"/>`;
+  return `<clipPath id="${cid}">${clip}</clipPath><g clip-path="url(#${cid})">${s}${sh}</g>`;
+}
+const rp=(d,f,x="")=>`<path d="${d}" fill="${f}" ${OS} ${x}/>`+texture({d},f,TXM);
+const re=(x,y,a,b,f,x2="")=>`<ellipse cx="${x}" cy="${y}" rx="${a}" ry="${b}" fill="${f}" ${OS} ${x2}/>`+texture({x,y,a,b},f,TXM);
+const rn=(d,f,o=1)=>`<path d="${d}" fill="${f}" opacity="${o}"/>`;
+const rs=(d,c,w=1.2,o=.7)=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" opacity="${o}"/>`;
+const reye=(x,y,r,c,glow)=>{const id="ir"+(_uid++);return `<defs><radialGradient id="${id}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="${mix(c,"#ffffff",.45)}"/><stop offset=".55" stop-color="${c}"/><stop offset="1" stop-color="${mix(c,"#000000",.65)}"/></radialGradient></defs>`+(glow?`<circle cx="${x}" cy="${y}" r="${r*2.6}" fill="${c}" opacity=".28"/>`:"")+`<ellipse cx="${x}" cy="${y}" rx="${r*1.15}" ry="${r}" fill="#0c0710" opacity=".55"/><ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.92}" fill="url(#${id})"/><ellipse cx="${x+.2}" cy="${y}" rx="${r*.34}" ry="${r*.8}" fill="#05030a"/><circle cx="${x-r*.38}" cy="${y-r*.42}" r="${r*.3}" fill="#fff" opacity=".95"/><circle cx="${x+r*.35}" cy="${y+r*.4}" r="${r*.14}" fill="#fff" opacity=".6"/>`;};
+const rsv=(b)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" class="rl"><defs>${SHG}${b[0]}<filter id="orf" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.7"/></filter></defs><g filter="url(#orf)">${b[1]}</g></svg>`;
+const shd=`<ellipse cx="60" cy="95" rx="36" ry="4" fill="#000" opacity=".4"/>`;
+const fur=(arr,c,w=1.1,o=.55)=>arr.map(d=>rs(d,c,w,o)).join("");
+const PR={
+ bear:()=>rsv([rv("b1","#9a6a40","#4a2c16")+rv("b2","#d8b080","#a07848")+lv("b3","#7a4a28","#3a200e"),
+  shd+
+  rp("M28 70Q22 90 28 92H48Q50 84 46 74z","url(#b3)")+rp("M28 90H50V94H26z","#3a200e")+
+  rp("M22 62Q22 36 56 34Q92 34 94 62Q96 82 70 84Q40 88 22 62z","url(#b1)")+
+  rp("M70 70Q74 92 72 94H90Q92 84 88 70z","url(#b3)")+rp("M70 92H92V95H70z","#3a200e")+
+  rn("M32 50Q50 38 80 44Q56 40 36 58z","#e4b484",.35)+
+  fur(["M30 60q4 4 2 10","M40 66q3 5 1 10","M52 70q2 5 0 9","M62 44q4 3 6 9","M48 42q3 2 5 7","M76 52q3 4 2 9","M28 52q3 2 4 7"],"#2a1608")+
+  rp("M84 38Q82 24 92 25Q100 27 98 38z","url(#b1)")+re(91,31,3.4,4,"#d8a070","stroke-opacity=\".4\"")+
+  rp("M84 52Q80 34 98 32Q116 34 112 52Q108 62 96 62Q86 62 84 52z","url(#b1)")+
+  re(106,53,10,7.5,"url(#b2)")+rp("M104 49Q108 47 112 50Q110 54 106 54z","#14080a")+rs("M104 58Q108 61 113 58","#3a200e",1.1,.8)+
+  reye(97,44,2.4,"#2a1608")+rs("M92 40Q97 37 102 40","#2a1608",1.3,.8)+
+  ""]),
+ raven:()=>rsv([rv("r1","#4a5272","#0e1020","0.3","0.2")+lv("r2","#2a3050","#080a18",1),
+  shd+
+  rs("M52 78L50 92M56 78L58 92","#c88a2a",2.2,1)+rs("M46 93H54M54 93H62","#c88a2a",2,1)+
+  rp("M8 70Q22 78 40 74Q30 84 10 84Q18 78 8 70z","url(#r2)")+rp("M14 66Q30 72 44 68Q34 76 18 76z","url(#r1)")+
+  rp("M24 66Q24 38 56 36Q86 38 80 66Q74 84 50 84Q28 84 24 66z","url(#r1)")+
+  rp("M30 54Q34 40 62 42Q74 46 70 64Q60 80 38 74Q28 68 30 54z","url(#r2)")+
+  fur(["M36 52Q50 46 64 50","M36 58Q52 52 68 56","M38 64Q52 58 66 62","M40 70Q52 66 62 69"],"#6a76a8",1.2,.5)+
+  rn("M40 46Q52 38 68 44Q54 42 42 52z","#8a96c8",.45)+
+  rp("M70 42Q70 22 88 22Q104 24 100 40Q96 50 84 50Q72 52 70 42z","url(#r1)")+
+  rp("M96 30Q112 32 116 44Q106 42 96 42z","#2a2a34")+rp("M96 36Q108 38 116 44Q106 46 96 44z","#4a4a58")+
+  reye(90,33,3,"#e8a030")+rn("M80 28Q86 24 94 27","#6a76a8",.5)]),
+ boar:()=>rsv([rv("o1","#8a6a50","#3a2a1c")+rv("o2","#caa88a","#8a6a50")+lv("o3","#5a4030","#241810"),
+  shd+
+  rp("M26 72Q22 92 26 93H44Q46 84 44 74z","url(#o3)")+rp("M62 74Q60 92 62 93H80Q82 84 80 74z","url(#o3)")+
+  rp("M18 60Q16 38 44 34Q80 30 94 52Q98 76 74 82Q40 88 18 60z","url(#o1)")+
+  rp("M24 40Q34 26 46 34L50 28L56 36L62 28L68 38L76 32L80 42Q50 34 24 46z","#1a1008")+
+  fur(["M28 56q3 3 2 8","M38 62q3 4 1 9","M52 66q3 4 0 9","M66 56q3 3 2 8","M78 62q2 3 0 8","M30 44q8-6 18-6"],"#241810",1.2,.6)+
+  rp("M70 36Q72 24 82 26L80 38z","#2a1c12")+
+  rp("M80 44Q80 30 96 30Q108 32 110 46Q110 62 98 64Q82 64 80 44z","url(#o1)")+
+  re(106,54,10,9,"url(#o2)")+re(111,53,3,3.4,"#2a1010")+re(106,59,2.4,2,"#2a1010")+
+  rp("M100 62Q98 70 102 72Q104 66 104 62z","#f4ecd8")+rp("M110 60Q114 64 118 62Q114 70 108 66z","#f4ecd8")+
+  reye(95,42,2.6,"#2a1608")+rs("M90 38Q95 35 100 38","#241810",1.4,.9)]),
+ frostwolf:()=>rsv([rv("f1","#eaf6ff","#7aa4c8")+rv("f2","#ffffff","#b8d4ec")+lv("f3","#9ac0e0","#4a78a0"),
+  `<circle cx="60" cy="56" r="44" fill="#7ad0ff" opacity=".07"/>`+shd+
+  rp("M6 52Q-2 70 14 76Q12 62 22 58z","url(#f1)")+rs("M8 56Q4 66 14 72","#fff",1.2,.7)+
+  rp("M26 72Q22 92 26 93H44Q46 84 44 74z","url(#f3)")+rp("M66 72Q64 92 66 93H84Q86 84 84 74z","url(#f3)")+
+  rp("M18 58Q18 40 44 38Q78 34 92 50Q96 72 74 78Q40 84 18 58z","url(#f1)")+
+  rp("M30 40L26 28L36 36L38 24L46 36L52 26L56 38L64 30L66 40z","#bfe8ff")+rp("M44 38L46 30L50 38z","#fff")+
+  fur(["M28 54q3 3 2 9","M40 62q3 4 1 9","M54 66q3 4 0 9","M66 56q3 3 2 8","M76 62q2 3 0 8"],"#6a98c0",1.2,.7)+
+  rn("M30 48Q50 40 80 46Q56 42 34 56z","#fff",.7)+
+  rp("M82 40L84 26L92 34z","url(#f1)")+
+  rp("M82 56Q80 38 98 36Q114 38 114 52Q110 64 98 66Q84 68 82 56z","url(#f1)")+
+  rp("M100 52Q114 52 118 58Q110 64 100 62z","url(#f2)")+re(117,57,2.6,2.2,"#12202a")+
+  reye(96,46,2.8,"#5ae8ff",1)+rs("M90 42Q96 38 102 42","#4a78a0",1.4,.9)]),
+ panther:()=>rsv([lv("p1","#4a3a6a","#0c0814")+rv("p2","#5a4a80","#0c0814","0.3","0.2")+lv("p3","#2a2040","#0a0610"),
+  shd+
+  rs("M14 60Q-4 56 2 40Q6 30 16 34","#14101e",7,1)+rs("M14 60Q-4 56 2 40Q6 30 16 34","#3a2c58",4,.9)+
+  rp("M18 64Q30 52 60 54Q96 52 102 66Q96 74 62 74Q34 76 18 64z","url(#p2)")+
+  rp("M24 66Q16 80 26 92H44Q40 84 42 74z","url(#p3)")+rp("M80 72Q80 86 76 92H94Q96 86 92 72z","url(#p3)")+
+  rp("M60 70Q58 84 54 92H72Q72 84 70 72z","url(#p3)")+
+  rn("M30 58Q56 52 92 58Q60 56 34 62z","#8a76c0",.55)+
+  rp("M92 54Q88 40 100 36Q114 36 116 48Q116 60 104 66Q94 66 92 54z","url(#p1)")+
+  rp("M92 42L90 30L100 38z","url(#p3)")+rp("M104 38L108 28L112 40z","url(#p3)")+
+  re(112,56,5,3.4,"#2a2040")+rn("M110 55h4","#d88aa0",1)+
+  reye(104,46,2.8,"#c8f03a",1)+rn("M98 42Q104 40 110 43","#000",.6)+
+  rs("M86 56q5-2 8 0","#8a76c0",1.2,.5)]),
+ lion:()=>rsv([rv("l1","#e4b060","#a8702c")+rv("l2","#c8742a","#6a3412","0.5","0.4")+lv("l3","#b07a38","#6a4418"),
+  shd+
+  rs("M14 64Q0 60 4 48","#a8702c",3,1)+re(5,45,4.6,6,"url(#l2)")+
+  rp("M24 70Q18 90 26 92H46Q44 84 44 74z","url(#l3)")+rp("M70 74Q68 90 72 92H90Q92 84 90 74z","url(#l3)")+
+  rp("M18 62Q18 46 48 44Q80 44 86 62Q84 78 54 80Q24 80 18 62z","url(#l1)")+
+  fur(["M30 60q3 3 2 8","M44 64q3 4 1 8","M58 66q3 4 0 8","M36 50q6-3 14-2"],"#8a5a20",1.2,.5)+
+  [[88,32,13],[100,36,13],[104,48,13],[98,60,13],[86,64,12],[76,52,13],[78,38,13]].map(a=>re(a[0],a[1],a[2],a[2]*.9,"url(#l2)")).join("")+
+  [[84,34],[96,32],[106,42],[104,56],[92,64],[80,60],[76,46]].map(a=>rs(`M${a[0]} ${a[1]}q4 6 0 12`,"#3a1a08",1.3,.7)).join("")+
+  rp("M80 52Q78 36 94 34Q108 36 108 50Q106 62 94 62Q82 62 80 52z","url(#l1)")+
+  rp("M80 38Q82 28 90 32L88 40z","url(#l3)")+re(100,54,9,7,"#f0cc90")+rp("M96 50Q100 48 104 51Q102 55 98 55z","#3a1a14")+rs("M97 58Q100 61 104 58","#3a1a14",1.1,.8)+
+  reye(92,44,2.4,"#d89018")+rs("M87 40Q92 37 97 40","#6a3412",1.3,.9)]),
+ griffin:()=>rsv([rv("g1","#f4e8c8","#a89060")+rv("g2","#d89a3a","#8a5418")+lv("g3","#c8a050","#6a4818")+lv("g4","#fff6dc","#c8b080"),
+  shd+
+  rp("M14 70Q4 74 8 84Q16 80 26 80z","url(#g2)")+rs("M12 72Q6 78 10 82","#8a5418",3,.9)+
+  rp("M26 72Q22 90 28 92H46Q46 84 44 74z","url(#g3)")+rp("M66 74Q66 90 70 92H88Q88 84 86 74z","url(#g3)")+
+  rp("M20 62Q20 48 48 46Q78 46 84 62Q80 78 52 80Q24 80 20 62z","url(#g2)")+
+  rp("M50 52Q38 22 6 8Q10 34 24 44Q16 36 18 50Q30 52 38 56z","url(#g4)")+
+  [["M44 48Q28 28 10 14","#c8b080"],["M40 50Q24 36 12 28","#c8b080"],["M36 54Q22 44 14 40","#c8b080"]].map(a=>rs(a[0],a[1],1.2,.9)).join("")+
+  rp("M60 48Q60 24 40 8Q40 32 52 46z","url(#g1)","opacity=\".95\"")+
+  rp("M74 50Q76 34 78 24Q86 30 84 46z","url(#g3)")+
+  rp("M76 44Q74 28 90 28Q102 30 102 42Q100 54 90 56Q78 56 76 44z","url(#g4)")+
+  rp("M96 36Q116 36 118 46Q110 52 98 50z","#f0b030")+rs("M100 44H116","#a87010",1.1,.8)+
+  reye(90,38,2.8,"#e8a020")+rs("M84 34Q90 31 96 34","#8a5418",1.5,.9)+
+  rp("M82 28Q78 20 84 18Q86 24 90 26z","url(#g4)")]),
+ dragon:()=>rsv([rv("d1","#5ac870","#1a5a30")+rv("d2","#f0d890","#b89850")+lv("d3","#3a9a50","#124a24")+lv("d4","#ff9a4a","#b8201c"),
+  `<circle cx="104" cy="48" r="15" fill="#ff8a1a" opacity=".1"/>`+shd+
+  rp("M22 62Q-2 60 2 82Q6 88 12 84Q4 76 20 74z","url(#d3)")+rp("M2 76L-2 68L8 72z","#f0d890")+
+  rp("M28 72Q22 90 30 92H48Q46 84 46 74z","url(#d3)")+rp("M68 76Q68 90 72 92H90Q90 84 88 76z","url(#d3)")+
+  rp("M44 52Q40 8 8 2Q14 24 18 34Q8 30 6 36Q22 44 28 54z","url(#d4)","opacity=\".92\"")+
+  rs("M44 52Q30 24 8 6M42 50Q26 34 10 38","#7a1410",1.4,.9)+
+  rp("M20 62Q20 46 50 44Q82 44 88 62Q84 78 54 80Q24 80 20 62z","url(#d1)")+
+  rp("M30 68Q54 80 80 68Q80 76 54 80Q30 80 30 68z","url(#d2)")+
+  rs("M36 72H72M40 76H68","#b89850",1,.8)+
+  [[30,46],[40,42],[52,40],[64,42],[76,46]].map(a=>rp(`M${a[0]-4} ${a[1]+4}L${a[0]} ${a[1]-6}L${a[0]+4} ${a[1]+4}z`,"#f0d890")).join("")+
+  fur(["M30 58q3 3 2 6","M44 54q3 3 2 6","M58 56q3 3 2 6","M72 54q3 3 2 6","M36 62q2 2 1 4","M64 62q2 2 1 4"],"#124a24",1.2,.55)+
+  rp("M80 46Q74 32 88 28Q102 28 104 42Q104 54 92 56Q82 56 80 46z","url(#d1)")+
+  rp("M82 34L78 22L90 30z","#f0d890")+rp("M96 30L102 20L102 34z","#f0d890")+
+  rp("M98 44Q114 40 118 50Q110 58 98 54z","url(#d1)")+rp("M100 52Q110 56 116 52","#f0d890","fill=\"none\"")+rn("M108 51l2 4l2-4z","#fff")+
+  reye(92,38,3,"#ffcf3a",1)]),
+};
+const PRIDS=Object.keys(PR);
+
+const PTX={bear:"fur",raven:"feather",boar:"fur",frostwolf:"fur",panther:"fur",lion:"fur",griffin:"feather",dragon:"scale"};
+PRIDS.forEach((id,k)=>{const f=PR[id];PR[id]=()=>{TXM=PTX[id];_sd=11+k*97;return f();};});
+// ===== питомцы v4: анатомичные, детальные =====
+const sm7=p=>{let d="M"+p[0][0].toFixed(1)+" "+p[0][1].toFixed(1);for(let i=1;i<p.length-1;i++){d+="Q"+p[i][0].toFixed(1)+" "+p[i][1].toFixed(1)+" "+((p[i][0]+p[i+1][0])/2).toFixed(1)+" "+((p[i][1]+p[i+1][1])/2).toFixed(1);}const l=p[p.length-1];return d+"L"+l[0].toFixed(1)+" "+l[1].toFixed(1);};
+function limb(pts){const L=[],R=[];for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dx=b[0]-a[0],dy=b[1]-a[1],n=Math.hypot(dx,dy)||1,nx=-dy/n,ny=dx/n,w=pts[i][2]/2;L.push([pts[i][0]+nx*w,pts[i][1]+ny*w]);R.push([pts[i][0]-nx*w,pts[i][1]-ny*w]);}return sm7(L)+sm7(R.reverse()).replace("M","L")+"z";}
+const hindL=(x,t,w,pl)=>limb(pl?[[x,t,w*1.25],[x+4,t+13,w],[x,t+26,w*.62],[x,89,w*.66]]:[[x-1,t,w*1.35],[x+8,t+12,w*.95],[x-6,t+25,w*.5],[x-5,89,w*.5]]);
+const foreL=(x,t,w)=>limb([[x,t,w*1.2],[x+2,t+14,w*.8],[x,t+27,w*.6],[x+1,89,w*.66]]);
+const pawE=(x,w,f)=>re(x,91,w*.6,3.4,f);
+const dkc=(c,k=.38)=>mix(c,"#000000",k);
+const Q=(o)=>{ // универсальный четвероногий: возвращает {far,tail,body,near} строки
+  const{H,S,yb,yl,m,d,pl,w}=o;
+  const torso=`M${H-8} ${yb+10}C${H-4} ${yb-2} ${(H+S)/2} ${yb-5} ${S-2} ${yb-1}C${S+8} ${yb+1} ${S+11} ${yb+12} ${S+8} ${yl-6}C${S+2} ${yl+3} ${H+12} ${yl+4} ${H-2} ${yl-1}C${H-14} ${yl-6} ${H-15} ${yb+16} ${H-8} ${yb+10}z`;
+  return{
+   far:rp(hindL(H+9,yl-12,w*.9,pl),"url(#"+d+")")+rp(foreL(S-4,yl-14,w*.9),"url(#"+d+")"),
+   body:rp(torso,"url(#"+m+")"),
+   near:rp(hindL(H-3,yl-14,w,pl),"url(#"+m+")")+pawE(H-3-(pl?0:5),w,"url(#"+d+")")+rp(foreL(S+2,yl-14,w),"url(#"+m+")")+pawE(S+3,w,"url(#"+d+")")+
+        `<ellipse cx="${H-4}" cy="${yl-9}" rx="9" ry="5" fill="#000" opacity=".16"/><ellipse cx="${S+1}" cy="${yl-10}" rx="7" ry="5" fill="#000" opacity=".14"/>`
+  };};
+const PR7={
+ bear:()=>{const q=Q({H:32,S:80,yb:36,yl:74,m:"b1",d:"b3",pl:1,w:13});return rsv([rv("b1","#a87448","#4a2c16")+rv("b2","#e0b888","#a07848")+lv("b3","#6a3e20","#2a160a"),
+  shd+q.far+rp("M20 58Q12 56 14 48Q22 46 26 52z","url(#b3)")+q.body+q.near+
+  rp("M76 38Q78 28 90 28Q104 28 108 40Q112 50 108 58Q100 66 90 64Q78 62 76 38z","url(#b1)")+
+  re(104,56,11,8,"url(#b2)")+rp("M99 51Q104 48 111 51Q109 57 103 57Q99 56 99 51z","#120808")+rn("M101 50q4-2 8 0","#fff",.5)+rs("M100 62Q105 66 112 61","#1a0c06",1.2,.85)+
+  re(86,29,5.4,5.6,"url(#b1)")+re(86,30,2.8,3,"#d09a68","stroke-opacity=\".3\"")+re(98,27,5,5.2,"url(#b1)")+re(98,28,2.6,2.8,"#d09a68","stroke-opacity=\".3\"")+
+  reye(96,44,2.6,"#3a2412")+rs("M90 40Q96 36 102 40","#1a0c06",1.5,.9)+rn("M88 36Q96 32 104 36Q96 34 90 42z","#000",.25)]);},
+ boar:()=>{const q=Q({H:30,S:78,yb:40,yl:72,m:"o1",d:"o3",pl:0,w:11});return rsv([rv("o1","#8a6a50","#3a2a1c")+rv("o2","#d0aa8c","#8a6a50")+lv("o3","#4a3426","#1e140c"),
+  shd+q.far+rp("M20 56Q8 54 10 44Q18 44 24 50z","url(#o3)")+q.body+q.near+
+  rp("M26 38L30 28L36 36L40 26L46 35L52 26L56 35L62 28L66 36L72 30L76 40Q50 30 26 46z","#1a1008")+
+  rp("M72 40Q74 26 90 28Q104 32 108 44Q112 56 104 64Q90 68 78 60Q72 52 72 40z","url(#o1)")+
+  rp("M100 44Q112 46 116 52Q116 62 108 64Q100 62 98 54z","url(#o2)")+re(113,53,3.6,4.4,"#2a1010")+re(108,60,2.6,2,"#2a1010")+
+  rp("M104 60Q100 72 106 74Q108 66 108 62z","#f4ecd8")+rp("M110 58Q116 62 120 56Q118 68 110 66z","#f4ecd8")+
+  rp("M74 36Q70 24 80 24L84 36z","url(#o3)")+rn("M76 32Q78 27 82 29","#d08a8a",.5)+
+  reye(94,42,2.6,"#2a1608")+rs("M88 37Q94 33 100 37","#1e140c",1.6,.9)]);},
+ frostwolf:()=>{const q=Q({H:28,S:80,yb:42,yl:72,m:"f1",d:"f3",pl:0,w:9.5});return rsv([rv("f1","#f0f8ff","#7aa4c8")+rv("f2","#ffffff","#bcd6ee")+lv("f3","#7aa0c4","#3a5878"),
+  `<circle cx="60" cy="56" r="44" fill="#7ad0ff" opacity=".06"/>`+shd+q.far+
+  rp(limb([[26,52,10],[14,58,14],[6,70,12],[7,80,5]]),"url(#f1)")+q.body+q.near+
+  rp("M34 42L32 28L40 38L44 26L50 38L56 28L60 40L68 32L72 44Q52 38 34 50z","#c8ecff")+rp("M42 38L44 30L48 38z","#fff")+rp("M52 38L56 31L58 38z","#fff")+
+  rp("M74 42Q74 30 88 30Q102 32 104 44Q104 56 92 60Q78 58 74 42z","url(#f1)")+
+  rp("M98 42Q112 44 118 54Q116 60 106 60Q98 58 94 52z","url(#f2)")+re(118,54,2.8,2.2,"#101820")+rs("M102 59Q110 62 116 58","#3a5878",1.1,.85)+
+  rp("M80 34L78 18L90 30z","url(#f1)")+rn("M81 32L80 23L87 30z","#9ad0f0",.8)+rp("M92 30L98 16L100 32z","url(#f1)")+rn("M94 30L97 21L98 31z","#9ad0f0",.8)+
+  rp("M74 48L66 56L74 56L72 62L80 58z","#e8f6ff")+
+  reye(92,42,3,"#5ae8ff",1)+rs("M86 38Q92 34 98 39","#3a5878",1.6,.9)]);},
+panther:()=>{const q=Q({H:24,S:78,yb:52,yl:72,m:"p2",d:"p3",pl:0,w:7.6});return rsv([lv("p1","#4a3a6a","#0c0814")+rv("p2","#5c4c84","#0e0a18","0.3","0.2")+lv("p3","#2a2040","#0a0610"),
+  shd+q.far+
+  rp(limb([[20,60,7.5],[9,60,6.5],[2,50,5.5],[3,38,4.6],[10,31,3.6]]),"url(#p2)")+q.body+q.near+
+  rn("M28 54Q56 48 88 54Q60 54 32 60z","#a590e0",.38)+
+  rp(limb([[78,56,13],[84,48,11],[90,44,10]]),"url(#p1)")+
+  '<g transform="translate(12 8) scale(.86)">'+
+  rp("M86 50Q86 38 98 36Q111 36 113 46Q115 56 105 62Q93 62 86 50z","url(#p1)")+
+  rp("M102 48Q112 48 117 54Q113 60 104 60z","url(#p2)")+re(117,53,2.6,2,"#3a2040")+rn("M113 53h3","#d890a8",.8)+
+  rp("M88 40L86 28L98 36z","url(#p3)")+rn("M89 38L88 31L95 36z","#7a5a8a",.7)+rp("M102 36L108 26L112 38z","url(#p3)")+rn("M104 36L107 29L110 37z","#7a5a8a",.7)+
+  reye(99,44,2.9,"#c8f03a")+rn("M93 40Q99 38 105 41","#000",.7)+
+  rs("M105 57Q110 59 115 57M104 52l-8 -2M104 54l-9 1","#6a5a90",.9,.5)+'</g>']);},
+  lion:()=>{const q=Q({H:28,S:78,yb:42,yl:74,m:"l1",d:"l3",pl:0,w:10.5});
+  const mane=[[88,32,13],[100,36,13],[104,48,13],[98,60,13],[86,64,12],[76,52,13],[78,38,13],[90,46,16]];
+  return rsv([rv("l1","#e8b668","#a8702c")+rv("l2","#cc7a2e","#5a2c0c","0.5","0.4")+lv("l3","#b07a38","#5a3a14"),
+  shd+q.far+rp(limb([[22,58,5],[10,62,4],[4,52,4]]),"url(#l3)")+re(4,48,4.6,6.4,"url(#l2)")+q.body+q.near+
+  mane.map(a=>re(a[0],a[1],a[2],a[2]*.92,"url(#l2)")).join("")+
+  mane.map(a=>rs(`M${a[0]-2} ${a[1]-6}q4 6 0 13M${a[0]+3} ${a[1]-5}q3 6 -1 12`,"#2a1006",1.2,.6)).join("")+
+  rp("M82 52Q80 38 94 36Q108 38 108 52Q106 64 94 64Q84 62 82 52z","url(#l1)")+
+  re(102,57,8.6,6.6,"#f2d098")+rp("M97 51Q101 49 106 52Q104 57 99 56z","#3a1814")+rs("M100 56v3Q98 62 94 61M100 59Q103 63 108 60","#3a1814",1.1,.8)+
+  rp("M82 40Q82 30 90 32L89 40z","url(#l3)")+
+  reye(93,45,2.5,"#d89018")+rs("M87 41Q93 38 99 42","#5a2c0c",1.5,.9)+rn("M88 39Q94 36 100 40","#000",.25)]);},
+ griffin:()=>{const q=Q({H:30,S:76,yb:50,yl:76,m:"g2",d:"g3",pl:0,w:10});
+  const wing=(x,y,sc,dy)=>{let s="";for(let k=0;k<8;k++){const a=(-168+k*8.2)*Math.PI/180,L=(38-k*1.6)*sc;s+=rp(limb([[x,y,7],[x+Math.cos(a)*L*.5,y+dy+Math.sin(a)*L*.5,7.4-k*.15],[x+Math.cos(a)*L,y+dy+Math.sin(a)*L,3]]),"url(#g4)");}
+    return s+rp(`M${x-14} ${y+2}Q${x-10} ${y-14} ${x+8} ${y-12}Q${x+16} ${y-4} ${x+10} ${y+8}Q${x-2} ${y+12} ${x-14} ${y+2}z`,"url(#g1)");};
+  return rsv([rv("g1","#f6ead0","#a89060")+rv("g2","#dc9e3c","#8a5418")+lv("g3","#b8903c","#5a3c10")+lv("g4","#fff8e4","#c0a878"),
+  shd+wing(54,50,1.3,-4)+q.far+rp(limb([[26,62,7],[14,70,8],[6,82,6]]),"url(#g2)")+rp("M4 78Q-2 84 6 90Q10 84 12 80z","#c8903a")+q.body+q.near+
+  wing(64,48,1.18,-2)+
+  rp(limb([[70,60,18],[76,48,15],[84,40,12]]),"url(#g4)")+
+  rp("M78 40Q76 24 92 24Q106 26 106 40Q104 52 92 54Q80 54 78 40z","url(#g4)")+
+  rp("M98 30Q112 28 118 38Q120 46 114 52Q116 44 108 42Q100 44 98 38z","#f2b232")+rs("M101 40Q110 41 114 46","#8a5a10",1.1,.8)+rn("M110 34q3 1 4 4","#8a5a10",.6)+
+  rp("M80 28Q72 22 70 14Q80 16 86 24z","url(#g4)")+rp("M86 24Q82 14 86 8Q92 14 92 24z","url(#g4)")+
+  reye(93,34,3,"#e89a1a")+rs("M86 30Q93 26 100 31","#8a5418",2,.95)]);},
+ dragon:()=>{const q=Q({H:30,S:76,yb:46,yl:76,m:"d1",d:"d3",pl:0,w:11});
+  return rsv([rv("d1","#5ec874","#17562c")+rv("d2","#f4dc9a","#b89850")+lv("d3","#32904c","#0e4020")+lv("d4","#ff9a50","#a81a18"),
+  shd+
+  rp("M56 48L44 18L14 6Q22 16 18 28Q26 32 28 42Q42 46 56 48z","url(#d4)","opacity=\".92\"")+
+  rp("M72 46L58 16L32 2Q40 12 36 24Q44 28 46 38Q60 42 72 46z","url(#d4)","opacity=\".96\"")+
+  rp(limb([[56,48,4],[50,32,3.2],[44,18,2.6]]),"url(#d3)")+rp(limb([[44,18,2.6],[28,10,1.6],[14,6,1]]),"url(#d3)")+rp(limb([[44,18,2.6],[30,24,1.4],[18,28,1]]),"url(#d3)")+
+  rp(limb([[72,46,4],[66,30,3.2],[58,16,2.6]]),"url(#d3)")+rp(limb([[58,16,2.6],[44,8,1.6],[32,2,1]]),"url(#d3)")+rp(limb([[58,16,2.6],[46,22,1.4],[36,26,1]]),"url(#d3)")+
+  q.far+rp(limb([[26,60,13],[14,66,10],[6,78,6],[10,88,3.4]]),"url(#d3)")+rp("M8 86L0 94L12 90z","#f4dc9a")+q.body+q.near+
+  rp("M34 70Q54 80 76 70Q76 77 54 78Q34 77 34 70z","url(#d2)")+rs("M40 72H70M44 75H66","#b89850",.9,.7)+
+  [[32,50],[42,46],[54,44],[66,46],[76,50]].map(a=>rp(`M${a[0]-3.6} ${a[1]+3}L${a[0]} ${a[1]-7}L${a[0]+3.6} ${a[1]+3}z`,"#f4dc9a")).join("")+
+  rp(limb([[68,56,20],[76,46,15],[86,38,12]]),"url(#d1)")+
+  rp("M80 38Q80 24 94 24Q106 26 108 36Q110 46 100 50Q86 52 80 38z","url(#d1)")+
+  rp("M98 34Q114 32 121 41Q120 49 110 50Q102 50 98 44z","url(#d1)")+rp("M100 46Q112 52 120 47Q116 54 104 54z","url(#d1)")+rs("M102 47Q112 51 119 46","#f4dc9a",1.1,.9)+rn("M108 47l1.4 3.4l1.4-3.4z","#fff")+rn("M114 46l1.2 3l1.2-3z","#fff")+re(117,38,1.4,1.1,"#0a2014")+
+  rp("M84 30L78 16L90 26z","#f4dc9a")+rp("M96 26L102 12L102 28z","#f4dc9a")+rp("M88 28L90 18L94 28z","#e0c880")+
+  reye(93,36,3,"#ffcf3a")+rs("M86 32Q93 28 100 33","#0e4020",1.8,.9)]);},
+ raven:()=>{TXM="feather";const feath=(x,y,len,ang,w)=>{const a=ang*Math.PI/180;return rp(limb([[x,y,w*.5],[x+Math.cos(a)*len*.5,y+Math.sin(a)*len*.5,w],[x+Math.cos(a)*len,y+Math.sin(a)*len,w*.3]]),"url(#r2)");};
+  return rsv([rv("r1","#4c5478","#0e1020","0.3","0.2")+lv("r2","#323a5c","#080a18",1),
+  shd+rs("M56 80L54 92M62 80L64 92","#b8782a",2.4,1)+rs("M48 93H58M58 93H70","#b8782a",2.2,1)+
+  [0,1,2,3,4,5].map(i=>feath(26,64,34,166+i*5.5,6.4)).join("")+
+  rp("M24 62Q24 36 56 34Q86 36 82 66Q76 86 52 86Q28 84 24 62z","url(#r1)")+
+  rp("M34 62Q34 44 58 44Q76 48 72 64Q64 80 44 76Q34 70 34 62z","url(#r2)")+
+  [0,1,2,3,4,5,6].map(i=>feath(40+i*3.4,52+i*2,28-i*1.2,20+i*5,5.2)).join("")+
+  rn("M40 46Q54 38 70 44Q56 42 42 52z","#9aa6d8",.5)+
+  rp("M72 42Q70 22 88 22Q104 24 102 40Q98 50 86 52Q74 54 72 42z","url(#r1)")+
+  rp("M96 28Q114 30 118 44Q108 42 96 42z","#2c2c38")+rp("M96 35Q110 38 118 44Q108 48 96 44z","#4c4c5c")+rs("M99 34Q108 35 114 40","#8a8a9a",1,.7)+
+  reye(89,32,3.2,"#e8a030")+rn("M80 28Q88 22 96 27","#7a86b8",.5)]);}
+};
+Object.keys(PR7).forEach((id,k)=>{const f=PR7[id];PR[id]=()=>{TXM=PTX[id];_sd=21+k*89;return f();};});
+
+Object.assign(PANC,{bear:{h:[94,46,16,14],b:[56,56,26,17]},raven:{h:[88,32,15,12],b:[52,62,22,18]},boar:{h:[92,44,15,13],b:[54,56,26,16]},frostwolf:{h:[88,42,14,12],b:[54,58,26,14]},panther:{h:[97,46,12,10],b:[52,62,26,10]},lion:{h:[93,50,11,11],b:[52,58,24,15]},griffin:{h:[92,37,14,13],b:[54,62,22,13]},dragon:{h:[92,37,14,12],b:[52,60,25,15]}});
+const AMG=["","","#d8dfeb|#6a7488","#ffe27a|#a8701c","#aee6ff|#3a62b0"];
+function petArmor(id,t){
+  if(!t)return"";
+  let o=parmor(id,t);
+  const c=PAR[t],mt=t===1?"#c08a4c|#5a3a1a":AMG[t],[m1,m2]=mt.split("|");
+  const def=`<defs><linearGradient id="am${t}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${m1}"/><stop offset=".55" stop-color="${c[1]}"/><stop offset="1" stop-color="${m2}"/></linearGradient></defs>`;
+  o=o.split(`fill="${c[1]}"`).join(`fill="url(#am${t})"`).split('stroke="#1b1226" stroke-width="2.2"').join('stroke="#0c0710" stroke-opacity=".65" stroke-width="1.3"');
+  return def+o;
+}
+const petArt=(id,t)=>PR[id]().replace(/<\/g><\/svg>$/,petArmor(id,t|0)+"</g></svg>");
 const mk=c=>{const d=CL[c];return{cls:c,lvl:1,xp:0,wl:0,sl:0,arm:0,t:0,cd:0,hun:100,rez:0,wt:0,lw:null,la:null,maxHp:d.hp,hp:d.hp,atk:d.atk,def:d.def};};
 const wp=h=>m.ex[h.cls]?CL[h.cls].x:CL[h.cls].w;
 const X=h=>m.ex[h.cls]?2:1;
-const A=h=>Math.round((h.atk+h.wl*wp(h)[2]+(h.lw?h.lw.v:0))*(h.hun<=0?.7:1));
-const D=h=>h.def+ARM[h.arm][1]+(h.la?h.la.v:0);
+const A=h=>Math.round((h.atk+h.wl*wp(h)[2]+(h.lw?h.lw.v:0)+(h.tm|0)*3)*(1+.03*tlv(h,"a"))*(h.hun<=0?.7:1));
+const D=h=>h.def+ARM[h.arm][1]+(h.la?h.la.v:0)+(h.ta|0);
 const need=l=>Math.round(30+22*l+.9*l*l);
 const sel=()=>s.heroes[s.sel]||s.heroes[0];
 const costs=h=>({pot:12+s.stage*2,food:Math.round(4+s.stage*.5),sword:Math.round((15+h.wl*h.wl*5+h.wl*15)*(h.wl>20?1+(h.wl-20)*.2:1))});
-const skCd=h=>Math.max(2,CL[h.cls].cd-Math.floor((h.sl|0)/4));
-const skM=h=>1+.12*(h.sl|0);
+const tlv=(h,k)=>(h.tl&&h.tl[k])|0;
+const skCd=h=>Math.max(2,CL[h.cls].cd-Math.floor((h.sl|0)/4)-(tlv(h,"m")>=5?1:0)-(tlv(h,"m")>=10?1:0));
+const skM=h=>1+.12*(h.sl|0)+.05*tlv(h,"m");
 const slCost=h=>Math.round(150*((h.sl|0)+1)**2*(1+s.stage/60));
 const itemTxt=it=>'<b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+" "+it.n+"</b> "+(it.t==="w"?"⚔️+":"🛡️+")+it.v;
 const allH=()=>s.heroes.concat(s.bench);
@@ -1328,7 +1621,7 @@ const ACH=[
  ["sl10","✨ Мастер навыка","Навык героя до 10 уровня",()=>allH().some(h=>(h.sl|0)>=10),25],
  ["sk5","🎨 Модник","Собери 5 скинов",()=>nSk()>=5,20],["sk20","🎨 Коллекционер","Собери 20 скинов",()=>nSk()>=20,80],["dv","⬜ Божественный блеск","Получи божественный скин",()=>Object.keys(m.sk).some(k=>k.endsWith(":4")),100],
  ["aw10","⚔️ Гладиатор","Победи 10 раз на арене",()=>m.aw>=10,30],["aw50","⚔️ Чемпион арены","Победи 50 раз на арене",()=>m.aw>=50,120],
- ["ch25","📦 Кладоискатель","Открой 25 сундуков",()=>m.co>=25,25],["fr1","👥 Зови друзей","Пригласи 1 друга",()=>m.inv>=1,30],["fr5","👥 Душа компании","Пригласи 5 друзей",()=>m.inv>=5,150],["p1","🐾 Друг зверей","Получи первого питомца",()=>Object.keys(m.pets.o).length>=1,10],["p5","🐲 Зверинец","Собери 5 питомцев",()=>Object.keys(m.pets.o).length>=5,30],["p8","🦄 Все питомцы","Собери всех питомцев",()=>Object.keys(m.pets.o).length>=8,80],["xc","💱 Делец","Обменяй золото на кристаллы",()=>m.xc>0,5]
+ ["ch25","📦 Кладоискатель","Открой 25 сундуков",()=>m.co>=25,25],["fr1","👥 Зови друзей","Пригласи 1 друга",()=>m.inv>=1,30],["fr5","👥 Душа компании","Пригласи 5 друзей",()=>m.inv>=5,150],["p1","🐾 Друг зверей","Получи первого питомца",()=>Object.keys(m.pets.o).length>=1,10],["p5","🐲 Зверинец","Собери 5 питомцев",()=>Object.keys(m.pets.o).length>=5,30],["p8","🦄 Все питомцы","Собери всех питомцев",()=>Object.keys(m.pets.o).length>=8,80],["tw5","🗼 Покоритель башни","Дойди до 5 этажа башни",()=>m.tw.best>=5,15],["tw20","🗼 Мастер башни","Дойди до 20 этажа башни",()=>m.tw.best>=20,60],["bs25","📖 Следопыт","Открой 25 записей бестиария",()=>Object.keys(m.bes).length>=25,20],["xc","💱 Делец","Обменяй золото на кристаллы",()=>m.xc>0,5]
 ];
 function checkAch(){
   grantSkQ();
@@ -1511,6 +1804,8 @@ function log(t){logs.unshift(t);logs.length=Math.min(logs.length,2);$("log").inn
 function pop(id,txt,cls){try{const e=$(id==="en"?"foe":id),sc=$("scene"),r=e.getBoundingClientRect(),q=sc.getBoundingClientRect(),p=document.createElement("div");p.className="pop "+(cls||"");p.textContent=txt;p.style.left=(r.left-q.left+r.width/2)+"px";p.style.top=(r.top-q.top+(id==="en"?r.height*.3:0))+"px";sc.appendChild(p);setTimeout(()=>p.remove(),900);}catch(e){}}
 const EVT={night:["🌙","Ночь","Наступила ночь: враги злее (+25% урона), награда ×1.5!"],eclipse:["🌑","Затмение","Затмение! Враги крепче (+40% здоровья), награда ×2 и опыт ×1.5!"],invasion:["👹","Нашествие","Нашествие! Золотых и элитных врагов намного больше!"]};
 function spawn(){
+  if(s.wb){wbSpawn();return;}
+  if(s.tw){towerSpawn();return;}
   const st=s.stage,zi=Math.floor((st-1)/20)%ZN.length,z=ZN[zi],boss=st%20===0,n=Math.max(1,s.heroes.length),mo=z.m[(st-1)%z.m.length];
   const ramp=Math.min(1,.5+st/36),ramA=Math.min(1,.55+st/45);
   let hp=Math.round((34+13*st**.9)*ramp*(boss?2.6:1)*(1+.85*(n-1)));
@@ -1531,10 +1826,10 @@ function spawn(){
 }
 function draw(){
   const z=en.z,h=sel(),dd=dailyDay();
-  $("stage").textContent=s.stage+"/"+MAXST;$("gold").textContent=s.gold;$("cr").textContent=m.cr;$("chn").textContent=s.cw+s.cg+m.ch.reduce((a,b)=>a+b,0);
+  $("stage").textContent=s.wb?"🌍":s.tw?"🗼"+s.tw:s.stage+"/"+MAXST;$("gold").textContent=s.gold;$("cr").textContent=m.cr;$("chn").textContent=s.cw+s.cg+m.ch.reduce((a,b)=>a+b,0);
   $("bGift").style.display=dd?"":"none";$("bMenu").textContent=(ACH.some(a=>a[3]()&&!m.ac[a[0]])||qReady())?"☰❗":"☰";$("aut").textContent=auto?"вкл":"выкл";$("bAuto").classList.toggle?0:0;
   if(en.zi!==lastZi){lastZi=en.zi;$("bg").innerHTML=BG[en.zi]();}
-  $("zone").textContent=z.n+(s.ev?" · "+EVT[s.ev.k][0]+" "+EVT[s.ev.k][1]+" ("+Math.max(0,s.ev.left)+")":"");
+  $("zone").textContent=(s.wb?"🌍 Мировой босс · ход "+s.wb.t+"/"+s.wb.max+" · ":s.tw?"🗼 Этаж "+s.tw+" · ":"")+z.n+(s.ev?" · "+EVT[s.ev.k][0]+" "+EVT[s.ev.k][1]+" ("+Math.max(0,s.ev.left)+")":"");
   if(en!==lastEn){lastEn=en;$("enf").innerHTML=en.art;$("foe").className=(en.big||en.boss?"big":"")+(en.gold?" gold":en.elite?" elite":"");const E=$("en"),dl=enDelay;enDelay=300;E.style.visibility="hidden";
     setTimeout(()=>{E.style.visibility="";try{E.animate([{transform:"translateY(-110px) scale(.85)"},{transform:"none"}],{duration:450,easing:"ease-out"});}catch(x){}
       if(en.hello&&(en.boss||Math.random()<.4)){en.hello=false;const L=en.boss?z.bs:z.say;setTimeout(()=>say("en",pick1(L),true),500);}},dl);}
@@ -1562,9 +1857,12 @@ function rezTick(){
   return ch;
 }
 function win(){
+  if(en.wb){wbFinish(false);return;}
+  if(en.tw){towerWin();return;}
+  bsAdd(en.name);
   const boss=en.boss,xp=Math.round((4+Math.round(3*s.stage**.85))*(s.ev&&s.ev.k==="eclipse"?1.5:1)*(en.gold?2:1));
   m.ko=(m.ko|0)+1;qAdd("ko");if(boss){m.bk=(m.bk|0)+1;qAdd("bk");SFX.win();}
-  s.gold+=en.reward;let up=0;
+  s.gold+=Math.round(en.reward*(1+(m.gp|0)/100));let up=0;
   s.heroes.forEach(h=>{if(h.hp>0)h.hp=Math.min(h.maxHp,h.hp+10);up+=gainXp(h,xp)?1:0;});
   let t="🏆 "+en.name+" повержен! +"+en.reward+" 💰 +"+xp+" ✨"+(up?" 🆙":"");
   if(boss){
@@ -1788,31 +2086,40 @@ function choreo(order,strikes,skI,pops,killed,says){
 }
 // ===== ПИТОМЦЫ: логика =====
 m.pets=Object.assign({o:{},a:null,e:1,x:null,t:0},m.pets||{});m.pets.o=m.pets.o||{};
+(()=>{let rm=0;Object.keys(m.pets.o).forEach(k=>{if(!PETS[k]){delete m.pets.o[k];rm++;}else if(m.pets.o[k].ar==null)m.pets.o[k].ar=0;});m.pets.e+=rm;
+  if(m.pets.a&&!PETS[m.pets.a])m.pets.a=null;if(m.pets.x&&!PETS[m.pets.x.id])m.pets.x=null;if(!m.pets.a){const f=Object.keys(m.pets.o)[0];if(f)m.pets.a=f;}})();
 let petMsg="",petKey="";
 const pLv=id=>(m.pets.o[id]&&m.pets.o[id].lv)|0;
+const pAr=id=>(m.pets.o[id]&&m.pets.o[id].ar)|0;
 const pAway=()=>m.pets.x?m.pets.x.id:null;
 const activePet=()=>{const a=m.pets.a;return a&&m.pets.o[a]&&pAway()!==a?a:null;};
-const PMUL={atk:1,fox:.85,slime:.45,heal:.3,guard:.5,fire:1.9,phx:1.3,uni:1.1};
-const pPow=id=>Math.max(1,Math.round((2+pLv(id)*1.6+s.stage*.35)*PMUL[PETS[id][2]]));
-const pGuard=()=>{const id=activePet();return id==="turtle"?Math.min(.2,.05+pLv(id)*.005):0;};
+const PMUL={bear:1.05,raven:.8,boar:1.1,frostwolf:.95,panther:1.25,lion:1.2,griffin:1.2,dragon:1.5};
+const pSt=id=>(m.pets.o[id]&&m.pets.o[id].st)|0;
+const STC=[2,3,5,8,12];
+const pPow=id=>Math.max(1,Math.round((2+pLv(id)*1.6+s.stage*.35)*PMUL[id]*(1+pAr(id)*.12)*(1+pSt(id)*.15)));
+const pGuard=()=>{const id=activePet();return id?Math.min(.25,pAr(id)*.03):0;};
 const pCost=id=>Math.round(40*Math.pow(Math.max(1,pLv(id)),1.7));
+const ARC=[null,["g",800,3],["g",5000,8],["c",60,15],["c",180,22]];
 const pName=id=>PETS[id][0];
 function petTurn(){
   const id=activePet();if(!id)return null;
-  const r=PETS[id][2],lv=pLv(id),t=m.pets.t=(m.pets.t|0)+1,o={id,d:0,fx:null,melee:true,pops:[]},pow=pPow(id);
+  const lv=pLv(id),st=pSt(id),per=n=>Math.max(2,n-(st>=3?1:0)-(st>=5?1:0)),t=m.pets.t=(m.pets.t|0)+1,o={id,d:0,fx:null,melee:true,pops:[]},pow=pPow(id);
   const live=()=>s.heroes.filter(a=>a.hp>0);
   const weak=()=>live().sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
   const heal=(a,fr)=>{if(!a||a.hp<=0)return;const g=Math.max(1,Math.round(a.maxHp*fr));a.hp=Math.min(a.maxHp,a.hp+g);o.pops.push(["h"+s.heroes.indexOf(a),"+"+g,"h"]);};
+  const sk=n=>o.pops.unshift(["pet","✨"+n,"s"]);
   const gold=(ch,base,k)=>{if(Math.random()<ch){const g=Math.round(base+s.stage*k);s.gold+=g;o.pops.push(["pet","+"+g+"💰","s"]);}};
-  if(r==="atk")o.d=pow+rnd(0,2);
-  else if(r==="fox"){o.d=pow+rnd(0,2);gold(.2,2,.4);}
-  else if(r==="slime"){o.d=pow+rnd(0,1);gold(.3,3,.6);}
-  else if(r==="heal"){o.d=pow;o.melee=false;o.fx="arc";if(t%3===0)heal(weak(),.07+lv*.003);}
-  else if(r==="guard"){o.d=pow+rnd(0,2);}
-  else if(r==="fire"){o.melee=false;o.fx="fire";if(t%2===0){o.d=pow+rnd(0,3);en.burn=Math.max(en.burn||0,2);en.bd=Math.max(en.bd||0,Math.round(pow*.25));}}
-  else if(r==="phx"){o.melee=false;o.fx="fire";o.d=pow+rnd(0,3);if(t%5===0)live().forEach(a=>heal(a,.08+lv*.004));
-    if(t%12===0){const dd=s.heroes.find(a=>a.hp<=0);if(dd){dd.hp=Math.ceil(dd.maxHp*.35);dd.rez=0;o.pops.push(["h"+s.heroes.indexOf(dd),"🔥","h"]);}}}
-  else if(r==="uni"){o.melee=false;o.fx="arc";o.d=pow+rnd(0,3);if(t%4===0){live().forEach(a=>heal(a,.06+lv*.003));s.bf=Math.max(s.bf,1);}}
+  o.d=pow+rnd(0,2);
+  if(id==="bear"){if(t%per(4)===0){o.d=Math.round(o.d*1.6);en.weak=Math.max(en.weak||0,2);sk("Рёв");}}
+  else if(id==="raven"){gold(.25,2,.4);if(t%per(4)===0){en.wet=Math.max(en.wet||0,2);sk("Ослепление");}}
+  else if(id==="boar"){if(t%per(3)===0){o.d=Math.round(o.d*2.2);en.slow=Math.max(en.slow||0,2);sk("Таран");}}
+  else if(id==="frostwolf"){if(t%per(3)===0){o.d=Math.round(o.d*1.5);en.slow=Math.max(en.slow||0,2);o.melee=false;o.fx="water";sk("Ледяное дыхание");}}
+  else if(id==="panther"){if(Math.random()<.3){o.d=Math.round(o.d*2.4);sk("Прыжок");}if(t%per(5)===0){en.burn=Math.max(en.burn||0,3);en.bd=Math.max(en.bd||0,Math.round(pow*.3));sk("Кровотечение");}}
+  else if(id==="lion"){if(t%per(4)===0){o.d=Math.round(o.d*1.4);live().forEach(a=>heal(a,.04+lv*.002));s.bf=Math.max(s.bf,1);sk("Рык");}}
+  else if(id==="griffin"){if(t%per(3)===0){o.d=Math.round(o.d*2.4);heal(weak(),.06+lv*.002);sk("Налёт");}}
+  else if(id==="dragon"){if(t%per(6)===0){o.d=Math.round(o.d*2.6);en.burn=Math.max(en.burn||0,3);en.bd=Math.max(en.bd||0,Math.round(pow*.3));o.melee=false;o.fx="fire";sk("Инферно");}
+    else if(t%per(2)===0){o.d=Math.round(o.d*1.2);en.burn=Math.max(en.burn||0,2);en.bd=Math.max(en.bd||0,Math.round(pow*.2));o.melee=false;o.fx="fire";}
+    else o.d=Math.round(o.d*.5);}
   o.d=o.d>0?Math.max(1,o.d):0;
   return o;
 }
@@ -1833,28 +2140,33 @@ function petFx(o,order,F){
       }
       setTimeout(()=>{try{$("enf").animate([{filter:"brightness(2.4) saturate(.3)"},{filter:"brightness(1)"}],{duration:240*F});}catch(x){}},dl+(o.melee?380:560)*F);
     }
-    o.pops.forEach((p,k)=>setTimeout(()=>pop(p[0]==="pet"?"pet":p[0],p[1],p[2]),dl+500*F+k*160));
+    o.pops.forEach((p,k)=>setTimeout(()=>pop(p[0],p[1],p[2]),dl+(p[0]==="pet"&&p[2]==="s"&&String(p[1])[0]==="✨"?0:500*F)+k*160));
     try{snd(o.melee?420:640,.09,"triangle",.05,-160,dl/1000);}catch(x){}
   }catch(x){}
 }
 function drawPet(){
   const e=$("pet");if(!e)return;const id=activePet();
   if(!id){e.style.display="none";petKey="";return;}
-  e.style.display="";const k=id+":"+pLv(id);
-  if(k!==petKey){petKey=k;e.querySelector(".fig").innerHTML=PA[id]();e.querySelector("small").textContent="Ур. "+pLv(id);}
+  e.style.display="";const k=id+":"+pLv(id)+":"+pAr(id)+":"+pSt(id);
+  if(k!==petKey){petKey=k;e.querySelector(".fig").innerHTML=petArt(id,pAr(id));e.querySelector("small").textContent="Ур. "+pLv(id)+(pSt(id)?" "+"★".repeat(pSt(id)):"");e.style.setProperty("--ps",1+pSt(id)*.07);e.classList.toggle("p5",pSt(id)>=5);}
 }
 const petDrop=ch=>{if(Math.random()<ch){m.pets.e++;return true;}return false;};
 function petRoll(){let x=Math.random()*PW.reduce((a,b)=>a+b,0),r=0;for(;r<PW.length-1;r++){if(x<PW[r])break;x-=PW[r];}const pool=PIDS.filter(i=>PETS[i][1]===r);return pool[rnd(0,pool.length-1)];}
 function petHatch(){
   if(m.pets.e<1)return;m.pets.e--;const id=petRoll(),own=m.pets.o[id],ra=PETS[id][1];
-  if(!own){m.pets.o[id]={lv:1};if(!m.pets.a||!activePet())m.pets.a=id;petMsg="🥚 Вылупился <b style=\"color:"+PRAR[ra][1]+"\">"+pName(id)+"</b> ("+PRAR[ra][0]+")! Новый питомец.";if(ra>=2)notify("loot","🐾 Вылупился "+PRAR[ra][0].toLowerCase()+" питомец «"+pName(id)+"»!");}
-  else if(own.lv<PMAX){own.lv++;petMsg="🥚 Снова "+pName(id)+"! Питомец вырос до ур. "+own.lv+".";}
-  else{const g=500+s.stage*10;s.gold+=g;petMsg="🥚 "+pName(id)+" уже на максимуме — получено +"+g+" 💰.";}
+  if(!own){m.pets.o[id]={lv:1,ar:0};if(!m.pets.a||!activePet())m.pets.a=id;petMsg="🥚 Вылупился <b style=\"color:"+PRAR[ra][1]+"\">"+pName(id)+"</b> ("+PRAR[ra][0]+")! Новый питомец.";if(ra>=2)notify("loot","🐾 Вылупился "+PRAR[ra][0].toLowerCase()+" питомец «"+pName(id)+"»!");}
+  else{m.pets.sh=m.pets.sh||{};m.pets.sh[id]=(m.pets.sh[id]|0)+1;if(own.lv<PMAX)own.lv++;petMsg="🥚 Снова "+pName(id)+"! +1 осколок ⭐ и ур. "+own.lv+".";}
   SFX.chest();log(petMsg.replace(/<[^>]+>/g,""));checkAch();
 }
+function petStar(id){const o=m.pets.o[id];if(!o||o.st>=5&&o.st!=null)return;const c=STC[o.st|0],sh=(m.pets.sh&&m.pets.sh[id])|0;if(sh<c)return;m.pets.sh[id]=sh-c;o.st=(o.st|0)+1;SFX.chest();petMsg="⭐ "+pName(id)+" эволюционировал до "+o.st+"★! Сила +15%"+(o.st===3||o.st===5?", навык срабатывает чаще":"")+".";log(petMsg);}
 function petBuy(){if(m.cr<30)return;m.cr-=30;m.pets.e++;petMsg="Куплено яйцо. Нажми «Вылупить».";}
 function petSet(id){if(m.pets.o[id]&&pAway()!==id){m.pets.a=id;petMsg="Теперь с вами: "+pName(id)+".";}}
 function petUp(id){const o=m.pets.o[id];if(!o||o.lv>=PMAX)return;const c=pCost(id);if(s.gold<c)return;s.gold-=c;o.lv++;petMsg=pName(id)+" стал сильнее: ур. "+o.lv+".";}
+function petArmUp(id){
+  const o=m.pets.o[id];if(!o||o.ar>=4)return;const c=ARC[o.ar+1];if(o.lv<c[2])return;
+  if(c[0]==="g"){if(s.gold<c[1])return;s.gold-=c[1];}else{if(m.cr<c[1])return;m.cr-=c[1];}
+  o.ar++;SFX.chest();petMsg="🛡 "+pName(id)+" получил броню: "+PAR[o.ar][0]+"! Сила +12%, защита отряда +3%.";log(petMsg);
+}
 const XRW=h=>({g:(a=>Math.round(h*(30+s.stage*4)*(1+a*.06)))(pLv(m.pets.x?m.pets.x.id:m.pets.a)),f:Math.max(1,Math.round(h/2)),e:h===1?.1:h===4?.45:.9,c:h===8?3:0});
 function petGo(h){
   if(m.pets.x)return;const id=m.pets.a;if(!id||!m.pets.o[id])return;
@@ -1867,7 +2179,7 @@ function petClaim(){
   m.pets.x=null;petMsg=t;SFX.win();log(t);
 }
 const fmtLeft=ms=>{const m2=Math.ceil(ms/60000),h=Math.floor(m2/60);return(h?h+" ч ":"")+(m2%60)+" мин";};
-const picon=id=>'<span class="pi">'+PA[id]()+"</span>";
+const picon=id=>'<span class="pi">'+petArt(id,pAr(id))+"</span>";
 function petsRender(){
   const P=m.pets,own=PIDS.filter(i=>P.o[i]);
   let b=(petMsg?'<div class="cht">'+petMsg+"</div>":"");
@@ -1877,18 +2189,163 @@ function petsRender(){
     const left=P.x.end-Date.now(),done=left<=0,r=XRW(P.x.h);
     b+=row("🧭 "+pName(P.x.id)+" на вылазке",done?"вернулся! добыча: "+r.g+" 💰, "+r.f+" 🍖"+(r.c?", "+r.c+" 💎":"")+", шанс на яйцо":"вернётся через "+fmtLeft(left),done?"Забрать":"","pclaim",false);
   }else if(activePet()){
-    const a=activePet();
-    b+=rowB("🧭 Вылазка: "+pName(a),"питомец уйдёт и не будет драться, но принесёт золото, еду и яйца — даже пока ты не в игре",[["1 ч","pgo",1],["4 ч","pgo",4],["8 ч","pgo",8]]);
+    b+=rowB("🧭 Вылазка: "+pName(activePet()),"питомец уйдёт и не будет драться, но принесёт золото, еду и яйца — даже пока ты не в игре",[["1 ч","pgo",1],["4 ч","pgo",4],["8 ч","pgo",8]]);
   }
   b+='<div class="cht">🐾 Коллекция: '+own.length+"/"+PIDS.length+"</div>";
   PIDS.forEach(id=>{
     const d=PETS[id],ra=PRAR[d[1]],o=P.o[id];
-    if(!o){b+=row('<span class="pi" style="filter:brightness(0) opacity(.45)">'+PA[id]()+"</span> ??? ","<span style=\"color:"+ra[1]+"\">"+ra[0]+"</span> питомец — найди в яйцах");return;}
-    const act=activePet()===id,away=pAway()===id,mx=o.lv>=PMAX;
-    b+=rowB(picon(id)+" "+d[0]+" · ур. "+o.lv+(act?" ✅":away?" 🧭":""),"<span style=\"color:"+ra[1]+"\">"+ra[0]+"</span> · "+d[3]+" · сила "+pPow(id),[[act?"Активен":away?"Ушёл":"Выбрать","pact",id,act||away],[mx?"МАКС":"⬆ 💰"+pCost(id),"pup",id,mx||s.gold<pCost(id)]]);
+    if(!o){b+=row('<span class="pi" style="filter:brightness(0) opacity(.45)">'+PR[id]()+"</span> ??? ","<span style=\"color:"+ra[1]+"\">"+ra[0]+"</span> питомец — найди в яйцах");return;}
+    const act=activePet()===id,away=pAway()===id,mx=o.lv>=PMAX,c=ARC[o.ar+1],sh=(P.sh&&P.sh[id])|0,sc=STC[o.st|0];
+    const arBtn=!c?["🛡 МАКС","parm",id,true]:["🛡 "+(c[0]==="g"?"💰":"💎")+c[1]+(o.lv<c[2]?" (ур."+c[2]+")":""),"parm",id,o.lv<c[2]||(c[0]==="g"?s.gold<c[1]:m.cr<c[1])];
+    b+=rowB(picon(id)+" "+d[0]+" · ур. "+o.lv+(pSt(id)?" "+"★".repeat(pSt(id)):"")+(act?" ✅":away?" 🧭":""),"<span style=\"color:"+ra[1]+"\">"+ra[0]+"</span> · броня: "+PAR[o.ar][0]+" · сила "+pPow(id)+"<br>"+d[3],[[act?"Активен":away?"Ушёл":"Выбрать","pact",id,act||away],[mx?"МАКС":"⬆ 💰"+pCost(id),"pup",id,mx||s.gold<pCost(id)],arBtn,[sc==null?"⭐ МАКС":"⭐ "+sh+"/"+sc,"pstar",id,sc==null||sh<sc]]);
   });
   return b;
 }
+// ===== БАШНЯ, КУЗНИЦА, БЕСТИАРИЙ =====
+m.tw=Object.assign({best:0},m.tw||{});m.res=Object.assign({ore:0},m.res||{});m.bes=m.bes||{};m.bc=m.bc||{};
+const ORE=r=>Math.max(1,Math.round(1.8**r));
+// --- башня ---
+const twE=f=>Math.max(5,Math.round((m.best|0)*.6))+f*3;
+function towerSpawn(){
+  const f=s.tw,E=twE(f),zi=Math.floor((f-1)/5)%ZN.length,z=ZN[zi],boss=f%5===0,n=Math.max(1,s.heroes.length),mo=z.m[(f-1)%z.m.length];
+  const ramp=Math.min(1,.5+E/36),ramA=Math.min(1,.55+E/45);
+  const hp=Math.round((34+13*E**.9)*ramp*(boss?2.6:1)*(1+.85*(n-1))*1.15),atk=Math.round((5+1.4*E**.7)*ramA*(boss?1.4:1)*1.1);
+  en={art:boss?BOSS[zi]():MOB[mo[0]](),name:boss?"Страж этажа: "+z.bn:mo[1],hp,max:hp,atk,reward:0,ab:boss?z.ab:{},n:0,boss,z,zi,slow:0,sw:0,burn:0,bd:0,weak:0,wet:0,hello:true,gold:false,elite:false,tw:f};
+}
+function towerWin(){
+  const f=s.tw,E=twE(f),boss=f%5===0,xp=Math.round(4+Math.round(3*E**.85)),g=Math.round(30+E*6);
+  m.ko=(m.ko|0)+1;bsAdd(en.name);if(boss)SFX.win();
+  let up=0;s.heroes.forEach(h=>{if(h.hp>0)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*.08));up+=gainXp(h,xp)?1:0;});
+  s.gold+=g;let t="🗼 Этаж "+f+" пройден! +"+g+" 💰 +"+xp+" ✨"+(up?" 🆙":"");
+  if(f>m.tw.best){m.tw.best=f;const c=boss?8:2;m.cr+=c;t+=" · новый рекорд! +"+c+" 💎";}
+  if(boss){const o=2+Math.floor(f/5);m.res.ore+=o;t+=" 🔩 +"+o+" руды";if(petDrop(.35))t+=" 🥚 яйцо!";if(Math.random()<.5){s.cg++;t+=" 🟨 сундук!";}}
+  else if(Math.random()<.2){m.res.ore+=1;t+=" 🔩+1";}
+  log(t);buzz(boss?"heavy":"light");s.tw++;checkAch();spawn();
+}
+function towerLose(){
+  const f=s.tw;s.tw=0;s.heroes.forEach(h=>{h.hp=Math.ceil(h.maxHp*.5);h.rez=0;h.hun=Math.max(h.hun,40);});
+  spawn();log("☠️ Отряд пал на этаже "+f+" и покинул башню. Ничего не потеряно.");buzz("heavy");
+}
+function towerRender(){
+  const f=s.tw,nx=(m.tw.best|0)+1;
+  let b=row("🗼 Башня испытаний","каждый этаж сильнее предыдущего, каждый 5-й — страж. Поражение ничего не отнимает.");
+  b+=row("🏆 Лучший этаж: "+(m.tw.best|0),f?"сейчас вы на этаже "+f:"новые этажи дают 💎, золото, руду, яйца");
+  if(f)b+=row("Вы в башне: этаж "+f,"бой идёт как обычно, прогресс этапов приостановлен","🚪 Выйти","twout");
+  else b+=rowB("Войти в башню","мощь врагов растёт с твоим лучшим этапом ("+(m.best|0)+")",[["С этажа "+nx,"twgo",nx],["С 1-го","twgo",1]]);
+  b+='<div class="cht">🎁 Награды: 💎 за первый проход этажа (за стража +8), 🔩 руда и 🥚 яйца с стражей</div>';
+  return b;
+}
+// --- кузница ---
+const tmC=l=>3+l*2;
+function forgeRender(){
+  const h=sel(),r=m.res.ore;
+  let b='<div class="cht">🔩 Руда: '+r+" · добывай в башне, переплавляя лишний лут (🔥 в рюкзаке)</div>";
+  if(h){
+    const tm=h.tm|0,ta=h.ta|0;
+    b+=row("🔨 Закалка оружия — "+CL[h.cls].i+" "+CL[h.cls].n+" ур. "+tm+"/25","+3 атаки за уровень",tm>=25?"МАКС":"🔩 "+tmC(tm),"temper",tm>=25||r<tmC(tm),"w")+
+       row("🛡️ Закалка брони ур. "+ta+"/25","+1 защиты за уровень",ta>=25?"МАКС":"🔩 "+tmC(ta),"temper",ta>=25||r<tmC(ta),"a");
+  }else b+=row("Выбери героя в отряде","чтобы закалить его снаряжение");
+  b+='<div class="cht">⚒ Создание предметов (по уровню текущего этапа)</div>';
+  const CR=[6,20,60,150,400];
+  for(let q=0;q<5;q++)b+=rowB(RAR[q][0]+" предмет","стоимость: 🔩 "+CR[q],[["⚔️","craft",q*2,r<CR[q]],["🛡️","craft",q*2+1,r<CR[q]]]);
+  return b;
+}
+const CRC=[6,20,60,150,400];
+// --- бестиарий ---
+const bsName=n=>n.replace(/^✨ Золотой /,"").replace(/^💢 Элитный /,"");
+function bsAdd(n){n=bsName(n);m.bes[n]=(m.bes[n]|0)+1;}
+const BSM=[[10,10],[25,20],[50,40],[75,80],[100,150]];
+function bsAll(){const a=[];ZN.forEach(z=>{const l=[];z.m.forEach(x=>{if(!l.includes(x[1]))l.push(x[1]);});l.push("Босс: "+z.bn);a.push([z.n,l]);});return a;}
+function bestRender(){
+  const all=bsAll(),tot=all.reduce((a,z)=>a+z[1].length,0),got=Object.keys(m.bes).length;
+  let b=row("📖 Бестиарий","побеждай разных врагов — открывай записи и получай 💎");
+  BSM.forEach(x=>{const ok=got>=x[0],cl=m.bc[x[0]];b+=row("🎁 "+x[0]+" записей","награда: "+x[1]+" 💎"+(ok||cl?"":" · открыто "+got),cl?"✅":ok?"Забрать":"🔒","bclaim",cl||!ok,x[0]);});
+  b+='<div class="cht">Открыто '+got+" из "+tot+"</div>";
+  all.forEach(z=>{b+=row(z[0],z[1].map(n=>m.bes[n]?"✅ "+n+" ×"+m.bes[n]:"❔").join(" · "));});
+  return b;
+}
+// ===== ТАЛАНТЫ, ГИЛЬДИЯ, МИРОВОЙ БОСС =====
+if(s.wb)s.wb=null;
+m.gp=m.gp|0;
+const talPts=h=>Math.floor(h.lvl/4)-(tlv(h,"a")+tlv(h,"d")+tlv(h,"m"));
+const TAL=[["a","⚔️ Сила","+3% урона за уровень"],["d","🛡️ Стойкость","−2.5% получаемого урона за уровень"],["m","✨ Мастерство","+5% силы навыка за уровень; на 5 и 10 ур. навык перезаряжается на ход быстрее"]];
+function talRender(){
+  const h=sel();if(!h)return row("Выбери героя в отряде","чтобы распределить таланты");
+  const left=talPts(h);
+  let b=row("🌟 Таланты — "+CL[h.cls].i+" "+CL[h.cls].n,"1 очко за каждые 4 уровня героя · свободно: "+left);
+  TAL.forEach(t=>{const l=tlv(h,t[0]);b+=row(t[1]+" ур. "+l+"/10",t[2],l>=10?"МАКС":"+1","tal",l>=10||left<1,t[0]);});
+  const spent=tlv(h,"a")+tlv(h,"d")+tlv(h,"m");
+  b+=row("♻️ Сбросить таланты","вернуть все очки",spent?"💰 "+h.lvl*200:"","talreset",s.gold<h.lvl*200);
+  return b;
+}
+// --- общение с сервером ---
+let gd=null,wbd=null,gMsg="",wMsg="";
+function gFetch(path,body,cb){
+  if(!BOT_API||!tg||!tg.initData){cb({off:1});return;}
+  post(path,body||{}).then(r=>r.json()).then(j=>{cb(j);if(tab==="guild"||tab==="wb")render();}).catch(()=>{cb({off:1});if(tab==="guild"||tab==="wb")render();});
+}
+const applyPerk=()=>{m.gp=gd&&gd.g?gd.g.perk|0:0;save();};
+const GERR={inguild:"Ты уже в гильдии.",badname:"Название: 3–16 символов, буквы, цифры, пробел.",taken:"Такое название уже занято.",full:"В гильдии нет мест.",nogd:"Гильдия не найдена."};
+function guildRender(){
+  if(gd&&gd.off)return row("🏰 Гильдии","недоступны: нет связи с сервером игры");
+  if(!gd||gd.load){if(!gd){gd={load:1};gFetch("/guild/me",{},j=>{gd=j;applyPerk();});}return row("🏰 Гильдия","загрузка…");}
+  let b=gMsg?'<div class="cht">'+gMsg+"</div>":"";
+  if(gd.g){
+    const g=gd.g;
+    b+=row("🏰 "+g.n,"участников: "+g.m.length+"/"+g.max+" · очки гильдии: "+g.p+"<br>бонус к золоту за врагов: <b>+"+g.perk+"%</b> (3 участника +5%, 6 — +10%, 10 — +15%)");
+    b+=row("📣 Позвать в гильдию","отправь друзьям ссылку на игру — пусть вступят в «"+g.n+"»","Пригласить","invite");
+    g.m.forEach((x,i)=>{b+=row((i+1)+". "+(x.o?"👑 ":"")+x.n+(x.me?" (ты)":""),"лучший этап: "+x.s);});
+    b+=row("🚪 Покинуть гильдию","","Выйти","gleave");
+  }else{
+    b+='<div class="r"><div>🏰 Создать гильдию<small>стоит 💎 50. Название: 3–16 символов</small></div><input id="gn" maxlength="16" placeholder="Название" style="width:46%;padding:8px;border-radius:8px;border:1px solid #6a4a1e;background:#0c0810;color:#eadfc4;font:inherit"></div>';
+    b+=row("Создать гильдию","списать 💎 50","💎 50","gcreate",m.cr<50);
+    b+='<div class="cht">Гильдии игроков — вступай или создай свою</div>';
+    if(!gd.list||!gd.list.length)b+=row("Пока нет гильдий","создай первую!");
+    else gd.list.forEach(x=>{b+=row("🏰 "+x.n,"участников: "+x.c+" · очки: "+x.p,x.c>=30?"Полно":"Вступить","gjoin",x.c>=30,x.id);});
+  }
+  return b;
+}
+// --- мировой босс ---
+const WBT=[[5000,5,0,0],[25000,10,5,0],[100000,15,10,1],[250000,25,0,1]];
+function wbReward(d,killed,rank){
+  let c=0,ore=0,egg=0,t="";
+  WBT.forEach(x=>{if(d>=x[0]){c+=x[1];ore+=x[2];egg+=x[3];}});
+  if(killed){c+=20;s.cg++;t+=" · 🎉 босс повержен всеми: +20 💎 и 🟨 сундук";}
+  const bonus=rank===1?100:rank===2?60:rank===3?40:0;c+=bonus;
+  m.cr+=c;m.res.ore+=ore;m.pets.e+=egg;
+  return "+"+c+" 💎"+(ore?" · 🔩 "+ore:"")+(egg?" · 🥚 "+egg:"")+(bonus?" · топ-"+rank+"!":"")+t;
+}
+function wbSpawn(){
+  const w=s.wb,zi=w.zi%ZN.length,z=ZN[zi],E=Math.max(20,Math.round((m.best|0)*.8));
+  const atk=Math.round((5+1.4*E**.7)*Math.min(1,.55+E/45)*1.8);
+  en={art:BOSS[zi](),name:"🌍 "+z.bn,hp:w.hp0,max:w.max0,atk,reward:0,ab:z.ab,n:0,boss:true,z,zi,slow:0,sw:0,burn:0,bd:0,weak:0,wet:0,hello:true,gold:false,elite:false,wb:1};
+}
+function wbFinish(wiped){
+  const w=s.wb;if(!w)return;
+  const dmg=en.hp<=0?w.hp0:Math.max(0,Math.round(w.hp0-en.hp));
+  s.wb=null;s.heroes.forEach(h=>{h.hp=Math.max(Math.ceil(h.maxHp*.6),h.hp>0?h.hp:0);h.rez=0;h.hun=Math.max(h.hun,40);});
+  spawn();
+  log("🌍 Бой с мировым боссом окончен"+(wiped?" (отряд пал)":"")+": нанесено "+dmg+" урона!");SFX.win();
+  gFetch("/wb/hit",{dmg},j=>{if(j&&j.ok){wbd=j;wMsg="Нанесено "+j.dealt+" урона. Всего за день: "+j.my+(j.rank?" · место "+j.rank:"");log("🌍 "+wMsg);}else wMsg="Результат не засчитан.";});
+}
+function wbRender(){
+  if(wbd&&wbd.off)return row("🌍 Мировой босс","недоступен: нет связи с сервером игры");
+  if(!wbd||wbd.load){if(!wbd){wbd={load:1};gFetch("/wb/state",{},j=>{wbd=j;});}return row("🌍 Мировой босс","загрузка…");}
+  const d=wbd,zz=(d0=>(d0.zi|0)%ZN.length)(wbd),z=ZN[zz];
+  let b=wMsg?'<div class="cht">'+wMsg+"</div>":"";
+  if(d.y&&!d.y.cl)b+=row("🎁 Награда за вчерашний бой","твой урон: "+d.y.d+(d.y.rank?" · место "+d.y.rank:"")+(d.y.killed?" · босс был повержен!":""),"Забрать","wbclaim");
+  const pc=Math.max(0,Math.min(100,d.hp/d.max*100));
+  b+='<div class="r" style="display:block"><div style="height:120px;text-align:center">'+BOSS[zz]().replace("<svg",'<svg style="height:100%;width:auto"')+'</div><b>🌍 '+z.bn+"</b><small>здоровье босса — общее для всех игроков, сбрасывается каждый день (UTC)</small>"+
+    '<div style="height:14px;margin:6px 0;border:2px solid #8a5a22;border-radius:8px;background:#12080c;overflow:hidden"><i style="display:block;height:100%;width:'+pc+'%;background:linear-gradient(#ff7a6a,#b3202f)"></i></div>'+
+    "<small>"+d.hp+" / "+d.max+" · твой урон: "+d.my+(d.rank?" · место "+d.rank:"")+"</small></div>";
+  b+=row("⚔️ Бой с боссом","12 ходов, нанеси максимум урона. Попыток сегодня: "+d.att+"/3"+(d.hp<=0?" · босс уже повержен!":""),s.wb?"В бою":s.tw?"Выйди из башни":"В бой","wbgo",d.att<1||d.hp<=0||!!s.wb||!!s.tw);
+  b+='<div class="cht">🎁 Награды (забираются завтра): урон 5k/25k/100k/250k — 💎, 🔩, 🥚; топ-3 дня — +100/60/40 💎; если босса победили всем миром — +20 💎 и сундук</div>';
+  b+='<div class="cht">🏆 Лучшие бойцы дня</div>';
+  if(!d.top.length)b+=row("Пока никто не бил босса","стань первым!");
+  d.top.forEach((x,i)=>{b+=row((i+1)+". "+x.n,"урон: "+x.d);});
+  return b;
+}
+setTimeout(()=>gFetch("/guild/me",{},j=>{gd=j;applyPerk();}),2500);
 const slowTurns=h=>{const r=h.lvl/(h.lvl+s.stage*.6+1);let t=Math.round(2+5*r+.5*(h.sl|0));if(en.boss)t=Math.round(t*.6);return Math.max(1,Math.min(10,t));};
 function attack(sk){
   const live=s.heroes.filter(h=>h.hp>0);
@@ -1976,20 +2433,22 @@ function attack(sk){
           let dm=Math.round(en.atk*wk*wt*100/(100+D(h)*3))+rnd(-1,2);
           if(en.ab.rage&&en.n%en.ab.rage===0){dm*=2;line+=" · 🔥 ярость!";}
           if(shield)dm=Math.round(dm/2);
-          dm=Math.max(1,Math.round(dm*(1-pGuard())));h.hp-=dm;pops.push(["h"+hi,"-"+dm,"e"]);
+          dm=Math.max(1,Math.round(dm*(1-pGuard())*(1-Math.min(.25,.025*tlv(h,"d")))));h.hp-=dm;pops.push(["h"+hi,"-"+dm,"e"]);
           if(h.hp<=0)says.push({w:"h"+hi,t:pick1(HD),at:"e"});else if(Math.random()<.3)says.push({w:"h"+hi,t:pick1(HS[h.cls].h),at:"e"});
         }
         if(Math.random()<.45)says.push({w:"en",t:pick1(en.boss?en.z.bs:en.z.say),at:"e"});
       }
     }
     log(line);
-    if(!s.heroes.some(h=>h.hp>0)){
+    if(!s.heroes.some(h=>h.hp>0)&&(s.tw||s.wb)){if(s.wb)wbFinish(true);else towerLose();}
+    else if(!s.heroes.some(h=>h.hp>0)){
       s.gold=Math.floor(s.gold/2);s.stage=Math.max(1,s.stage-2);s.heroes.forEach(h=>{h.hp=Math.ceil(h.maxHp*.5);h.rez=0;h.hun=Math.max(h.hun,40);});spawn();
       log("☠️ Отряд пал, но очнулся у костра. Золота стало меньше.");buzz("heavy");
     }
   }
   s.heroes.forEach(h=>{if(h.hp>0){h.cd=Math.max(0,h.cd-1);h.hun=Math.max(0,h.hun-.35);if(h.hun<=0)h.hp=Math.max(1,h.hp-Math.ceil(h.maxHp*.02));}});
   rezTick();
+  if(s.wb&&en.hp>0){s.wb.t++;if(s.wb.t>=s.wb.max)wbFinish(false);}
   if(skI>=0)SFX.skill();else SFX.strike(order);if(killed)setTimeout(SFX.kill,420);else strikes.forEach((st,j)=>setTimeout(()=>SFX.hurt(st.miss),620+j*520));
   save();draw();choreo(order,strikes,skI,pops,killed,says);
   if(pt)petFx(pt,order);
@@ -2024,7 +2483,7 @@ function skinRows(h){
   return o;
 }
 function render(){
-  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
+  const h=sel(),T=[["shop","🛒 Лавка"],["bag","🎒 Рюкзак"],["team","👥 Отряд"],["pets","🐾 Питомцы"],["tal","🌟 Таланты"],["guild","🏰 Гильдия"],["wb","🌍 Мировой босс"],["tower","🗼 Башня"],["forge","⚒ Кузница"],["bes","📖 Бестиарий"],["skin","🎨 Скины"],["chest","📦 Сундуки"],["arena","⚔️ Арена"],["top","🏆 Топ"],["q","📅 Задания"],["ach","🏅 Цели"],["gift","🎁 Награды"]];
   let b="";
   if(tab==="pick"){
     const left=Object.keys(CL).filter(c=>!allH().some(x=>x.cls===c));
@@ -2040,7 +2499,7 @@ function render(){
       row("🍖 Еда ×3","утоляет голод отряда","💰 "+3*c.food,"bfood",s.gold<3*c.food);
   }else if(tab==="bag"&&h){
     b=row("Надето ("+CL[h.cls].i+")","оружие: "+(h.lw?itemTxt(h.lw):"—")+"<br>броня: "+(h.la?itemTxt(h.la):"—"))+
-      (s.inv.length?s.inv.map((it,i)=>'<div class="r"><div>'+itemTxt(it)+'</div><span><button data-a="equip" data-i="'+i+'">Надеть</button> <button data-a="sell" data-i="'+i+'">💰'+it.v*6+"</button></span></div>").join(""):row("Рюкзак пуст","лут падает с боссов"));
+      (s.inv.length?s.inv.map((it,i)=>'<div class="r"><div>'+itemTxt(it)+'</div><span><button data-a="equip" data-i="'+i+'">Надеть</button> <button data-a="sell" data-i="'+i+'">💰'+it.v*6+'</button> <button data-a="smelt" data-i="'+i+'">🔥+'+ORE(it.r)+"</button></span></div>").join(""):row("Рюкзак пуст","лут падает с боссов"));
   }else if(tab==="team"){
     b=s.heroes.map((x,i)=>rowB(CL[x.cls].i+" "+hn(x)+" · Ур. "+x.lvl,"❤️ "+Math.ceil(x.hp)+"/"+x.maxHp+" · ✨ ур."+(x.sl|0)+" · 🍖 "+Math.ceil(x.hun)+"% · 🛡️ "+ARM[x.arm][0],[[i===s.sel?"выбран":"Выбрать","sel",i,i===s.sel],["✏️","rename","h"+i],["В запас","bench",i,s.heroes.length<2]])).join("")+
       (s.bench.length?'<div class="cht">🪑 Запас (в бою не участвуют)</div>'+s.bench.map((x,i)=>rowB(CL[x.cls].i+" "+hn(x)+" · Ур. "+x.lvl,"❤️ "+x.maxHp+" · ✨ ур."+(x.sl|0),[["✏️","rename","b"+i],[s.heroes.length<m.slots?"В отряд":"Заменить выбранного","unbench",i]])).join(""):"")+
@@ -2054,6 +2513,18 @@ function render(){
     b=skinRows(h);
   }else if(tab==="pets"){
     b=petsRender();
+  }else if(tab==="tal"){
+    b=talRender();
+  }else if(tab==="guild"){
+    b=guildRender();
+  }else if(tab==="wb"){
+    b=wbRender();
+  }else if(tab==="tower"){
+    b=towerRender();
+  }else if(tab==="forge"){
+    b=forgeRender();
+  }else if(tab==="bes"){
+    b=bestRender();
   }else if(tab==="chest"){
     b=(chestMsg?'<div class="cht">'+chestMsg+"</div>":"");
     for(let r=0;r<5;r++)b+=rowB(CHI[r]+" "+CHN[r]+" сундук ×"+m.ch[r],CHR[r]+" · скин героя или оружия",[["Открыть","och",r,m.ch[r]<1],["💎 "+CHP[r],"bch",r,m.cr<CHP[r]]]);
@@ -2140,7 +2611,7 @@ const ACT={
   equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=it.t==="w"?"lw":"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
   sell(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);s.gold+=it.v*6;},
   claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");notify("daily","🎁 Награда за день "+n+" получена. Завтра будет новая!");},
-  chest(){openChest();},phatch(){petHatch();},pbuy(){petBuy();},pact(i){petSet(i);},pup(i){petUp(i);},pgo(i){petGo(+i);},pclaim(){petClaim();},
+  chest(){openChest();},phatch(){petHatch();},pbuy(){petBuy();},pact(i){petSet(i);},pup(i){petUp(i);},parm(i){petArmUp(i);},pstar(i){petStar(i);},tal(k){const h=sel();if(!h||talPts(h)<1||tlv(h,k)>=10)return;h.tl=h.tl||{};h.tl[k]=tlv(h,k)+1;SFX.chest();},talreset(){const h=sel();if(!h||s.gold<h.lvl*200)return;s.gold-=h.lvl*200;h.tl={};},gcreate(){const n=($("gn")&&$("gn").value||"").trim();if(m.cr<50)return;gFetch("/guild/create",{name:n},j=>{if(j.ok){m.cr-=50;gd=j;applyPerk();gMsg="Гильдия создана!";}else gMsg=GERR[j.error]||"Не удалось создать гильдию.";});},gjoin(id){gFetch("/guild/join",{gid:id},j=>{if(j.ok){gd=j;applyPerk();gMsg="Ты вступил в гильдию!";}else gMsg=GERR[j.error]||"Не удалось вступить.";});},gleave(){gFetch("/guild/leave",{},j=>{gd=j;applyPerk();gMsg="Ты покинул гильдию.";});},wbgo(){if(s.wb||s.tw)return;gFetch("/wb/start",{},j=>{if(j.ok){s.wb={t:0,max:12,hp0:j.hp,max0:j.max,zi:j.zi};$("sheet").hidden=true;spawn();log("🌍 Бой с мировым боссом начался: 12 ходов!");save();draw();}else{wMsg=j.dead?"Босс уже повержен — возвращайся завтра.":j.limit?"Попытки на сегодня закончились.":"Не удалось начать бой.";wbd=null;}});},wbclaim(){gFetch("/wb/claim",{},j=>{if(j.ok){wMsg="Награда получена: "+wbReward(j.d,j.killed,j.rank);SFX.chest();if(wbd&&wbd.y)wbd.y.cl=true;save();draw();}else wMsg="Награда уже получена или недоступна.";});},twgo(i){if(s.tw)return;s.tw=Math.max(1,+i);spawn();$("sheet").hidden=true;log("🗼 Вы вошли в башню: этаж "+s.tw);},twout(){if(!s.tw)return;s.tw=0;spawn();log("🚪 Вы вышли из башни.");},smelt(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);m.res.ore+=ORE(it.r);},temper(k){const h=sel();if(!h)return;const key=k==="w"?"tm":"ta",l=h[key]|0;if(l>=25||m.res.ore<tmC(l))return;m.res.ore-=tmC(l);h[key]=l+1;SFX.chest();},craft(i){i=+i;const q=i>>1,w=!(i&1);if(m.res.ore<CRC[q])return;m.res.ore-=CRC[q];const it={t:w?"w":"a",r:q,v:Math.round((4+s.stage**.6)*RAR[q][2]*(w?1:.8)),n:(w?LW:LA)[rnd(0,3)]};s.inv.push(it);SFX.chest();log("⚒ Выкован предмет: "+it.n);},bclaim(k){const x=BSM.find(a=>a[0]===+k);if(!x||m.bc[x[0]]||Object.keys(m.bes).length<x[0])return;m.bc[x[0]]=1;m.cr+=x[1];SFX.chest();log("📖 Бестиарий: +"+x[1]+" 💎");},pgo(i){petGo(+i);},pclaim(){petClaim();},
   och(i){openCh(+i);},
   bch(i){i=+i;if(m.cr<CHP[i])return;m.cr-=CHP[i];m.ch[i]++;chestMsg="Куплен: "+CHI[i]+" "+CHN[i]+" сундук. Нажми «Открыть».";},
   g2c(n){n=+n;if(s.gold<n*1000)return;s.gold-=n*1000;m.cr+=n;m.xc=1;checkAch();chestMsg="Обмен: −"+n*1000+" 💰, +"+n+" 💎";},

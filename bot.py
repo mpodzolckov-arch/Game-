@@ -29,7 +29,7 @@ SCORES = "scores.json"
 REMIND_AFTER = 20 * 3600  # напомнить о награде через 20 часов после последней
 SB_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SB_KEY = os.environ.get("SUPABASE_KEY", "")
-CLASSES = {"warrior", "mage", "archer", "assassin", "medic", "wmage", "fmage", "witch", "fairy", "swordsman", "lightning", "angel"}
+CLASSES = {"warrior", "mage", "archer", "assassin", "medic", "wmage", "fmage", "witch", "fairy", "swordsman", "lightning", "angel", "samurai", "druid", "pirate", "necro", "hunter", "bard"}
 ARENA_DAILY = 5
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 ALLOWED = {"boss", "loot", "win", "hero", "daily"}
@@ -463,6 +463,256 @@ async def notify(request: web.Request):
     return web.json_response({"ok": True})
 
 
+# ---------- гильдии и мировой босс (данные лежат в таблице kv) ----------
+KV_FILE = "kv.json"
+kv_local: dict = {}
+kv_lock = asyncio.Lock()
+GUILD_MAX = 30
+WB_MAX = 1_000_000
+WB_TRIES = 3
+
+
+def load_kv():
+    global kv_local
+    try:
+        with open(KV_FILE, encoding="utf-8") as f:
+            kv_local = json.load(f)
+    except Exception:
+        kv_local = {}
+
+
+async def kv_get(k):
+    if SB_URL:
+        rows = await sb("GET", "kv", {"k": "eq." + k, "select": "v"})
+        return rows[0]["v"] if rows else None
+    return kv_local.get(k)
+
+
+async def kv_put(k, v):
+    if SB_URL:
+        await sb("POST", "kv", {"on_conflict": "k"}, [{"k": k, "v": v}], prefer="resolution=merge-duplicates,return=minimal")
+        return
+    kv_local[k] = v
+    try:
+        with open(KV_FILE, "w", encoding="utf-8") as f:
+            json.dump(kv_local, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def api(fn):
+    """Проверяет подпись Telegram и ловит ошибки базы (игра продолжает работать без этих функций)."""
+    async def w(request):
+        try:
+            body = await request.json()
+            u = user_info(body.get("initData", ""))
+        except Exception:
+            raise web.HTTPBadRequest()
+        if u is None:
+            raise web.HTTPForbidden()
+        uid = int(u["id"])
+        name = (u.get("first_name") or u.get("username") or "Герой")[:20]
+        try:
+            async with kv_lock:
+                return web.json_response(await fn(uid, name, body))
+        except (web.HTTPBadRequest, web.HTTPForbidden):
+            raise
+        except Exception as e:
+            print("api error", fn.__name__, e)
+            return web.json_response({"off": 1})
+    return w
+
+
+def g_perk(n):
+    return 15 if n >= 10 else 10 if n >= 6 else 5 if n >= 3 else 0
+
+
+async def guilds_load():
+    gs = await kv_get("guilds")
+    return gs if isinstance(gs, dict) and "g" in gs else {"n": 0, "g": {}}
+
+
+def guild_find(gs, uid):
+    for gid, g in gs["g"].items():
+        if uid in g["m"]:
+            return gid, g
+    return None, None
+
+
+async def players_rows(uids):
+    if not uids:
+        return []
+    if SB_URL:
+        return await sb("GET", "players", {"select": "uid,name,best", "uid": "in.(%s)" % ",".join(str(int(x)) for x in uids)})
+    return [local_db[str(u)] for u in uids if str(u) in local_db]
+
+
+async def guild_state(gs, uid):
+    gid, g = guild_find(gs, uid)
+    if g is None:
+        top = sorted(gs["g"].items(), key=lambda kv: -kv[1].get("pts", 0))[:15]
+        return {"g": None, "list": [{"id": k, "n": v["name"], "c": len(v["m"]), "p": v.get("pts", 0)} for k, v in top]}
+    rows = {int(r["uid"]): r for r in await players_rows(g["m"])}
+    mem = []
+    for m in g["m"]:
+        r = rows.get(m, {})
+        mem.append({"n": r.get("name", "Герой"), "s": r.get("best", 0), "o": m == g["o"], "me": m == uid})
+    mem.sort(key=lambda x: -x["s"])
+    g["pts"] = sum(x["s"] for x in mem)
+    await kv_put("guilds", gs)
+    return {"g": {"id": gid, "n": g["name"], "own": g["o"] == uid, "m": mem, "p": g["pts"], "perk": g_perk(len(g["m"])), "max": GUILD_MAX}}
+
+
+@api
+async def guild_me(uid, name, body):
+    return await guild_state(await guilds_load(), uid)
+
+
+@api
+async def guild_create(uid, name, body):
+    import re
+    gs = await guilds_load()
+    if guild_find(gs, uid)[1] is not None:
+        return {"error": "inguild"}
+    gname = re.sub(r"\s+", " ", str(body.get("name", "")).strip())
+    if not re.fullmatch(r"[\w \-А-Яа-яЁё]{3,16}", gname):
+        return {"error": "badname"}
+    if any(g["name"].lower() == gname.lower() for g in gs["g"].values()):
+        return {"error": "taken"}
+    gs["n"] += 1
+    gs["g"]["g%d" % gs["n"]] = {"name": gname, "o": uid, "m": [uid], "pts": 0}
+    await kv_put("guilds", gs)
+    out = await guild_state(gs, uid)
+    out["ok"] = 1
+    return out
+
+
+@api
+async def guild_join(uid, name, body):
+    gs = await guilds_load()
+    if guild_find(gs, uid)[1] is not None:
+        return {"error": "inguild"}
+    g = gs["g"].get(str(body.get("gid", "")))
+    if g is None:
+        return {"error": "nogd"}
+    if len(g["m"]) >= GUILD_MAX:
+        return {"error": "full"}
+    g["m"].append(uid)
+    await kv_put("guilds", gs)
+    out = await guild_state(gs, uid)
+    out["ok"] = 1
+    return out
+
+
+@api
+async def guild_leave(uid, name, body):
+    gs = await guilds_load()
+    gid, g = guild_find(gs, uid)
+    if g is None:
+        return {"error": "noguild"}
+    g["m"].remove(uid)
+    if not g["m"]:
+        del gs["g"][gid]
+    elif g["o"] == uid:
+        g["o"] = g["m"][0]
+    await kv_put("guilds", gs)
+    return await guild_state(gs, uid)
+
+
+def wb_zi(day):
+    return int(time.mktime(time.strptime(day, "%Y-%m-%d")) // 86400) % 18
+
+
+async def wb_doc(day):
+    d = await kv_get("wb:" + day)
+    if not isinstance(d, dict):
+        d = {"hp": WB_MAX, "max": WB_MAX, "p": {}}
+    return d
+
+
+def wb_rank(d, uid):
+    items = sorted(d["p"].items(), key=lambda kv: -kv[1].get("d", 0))
+    for i, (k, v) in enumerate(items):
+        if k == str(uid):
+            return i + 1
+    return 0
+
+
+async def wb_state(uid):
+    day = day_key()
+    d = await wb_doc(day)
+    yd = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 86400))
+    y = await kv_get("wb:" + yd)
+    me_ = d["p"].get(str(uid), {})
+    top = sorted(d["p"].values(), key=lambda v: -v.get("d", 0))[:10]
+    out = {"day": day, "zi": wb_zi(day), "hp": d["hp"], "max": d["max"], "att": WB_TRIES - me_.get("a", 0), "my": me_.get("d", 0),
+           "top": [{"n": v.get("n", "Герой"), "d": v.get("d", 0)} for v in top], "rank": wb_rank(d, uid), "y": None}
+    if isinstance(y, dict) and str(uid) in y["p"] and y["p"][str(uid)].get("d", 0) > 0:
+        yp = y["p"][str(uid)]
+        out["y"] = {"zi": wb_zi(yd), "d": yp["d"], "killed": y["hp"] <= 0, "rank": wb_rank(y, uid), "cl": bool(yp.get("cl"))}
+    return out
+
+
+@api
+async def wb_state_api(uid, name, body):
+    return await wb_state(uid)
+
+
+@api
+async def wb_start(uid, name, body):
+    day = day_key()
+    d = await wb_doc(day)
+    if d["hp"] <= 0:
+        return {"ok": 0, "dead": 1}
+    p = d["p"].setdefault(str(uid), {"n": name, "d": 0, "a": 0, "pend": 0})
+    p["n"] = name
+    if p.get("a", 0) >= WB_TRIES:
+        return {"ok": 0, "limit": 1}
+    p["a"] = p.get("a", 0) + 1
+    p["pend"] = 1
+    await kv_put("wb:" + day, d)
+    return {"ok": 1, "hp": d["hp"], "max": d["max"], "zi": wb_zi(day)}
+
+
+@api
+async def wb_hit(uid, name, body):
+    day = day_key()
+    d = await wb_doc(day)
+    p = d["p"].get(str(uid))
+    if not p or not p.get("pend"):
+        return {"ok": 0}
+    row = await db_get(uid)
+    best = max(1, (row or {}).get("best", 1))
+    cap = 600 * best + 30000
+    try:
+        dmg = int(body.get("dmg", 0))
+    except (TypeError, ValueError):
+        dmg = 0
+    dmg = max(0, min(dmg, cap, d["hp"]))
+    p["pend"] = 0
+    p["d"] = p.get("d", 0) + dmg
+    d["hp"] = max(0, d["hp"] - dmg)
+    await kv_put("wb:" + day, d)
+    out = await wb_state(uid)
+    out["ok"] = 1
+    out["dealt"] = dmg
+    return out
+
+
+@api
+async def wb_claim(uid, name, body):
+    yd = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 86400))
+    y = await kv_get("wb:" + yd)
+    if not isinstance(y, dict):
+        return {"ok": 0}
+    p = y["p"].get(str(uid))
+    if not p or p.get("d", 0) <= 0 or p.get("cl"):
+        return {"ok": 0}
+    p["cl"] = 1
+    await kv_put("wb:" + yd, y)
+    return {"ok": 1, "d": p["d"], "killed": y["hp"] <= 0, "rank": wb_rank(y, uid)}
+
+
 @web.middleware
 async def cors(request, handler):
     if request.method == "OPTIONS":
@@ -499,6 +749,7 @@ async def main():
     global session
     load()
     load_local()
+    load_kv()
     session = aiohttp.ClientSession()
     app = web.Application(middlewares=[cors])
     app.router.add_post("/notify", notify)
@@ -509,6 +760,10 @@ async def main():
     app.router.add_post("/arena/state", arena_state)
     app.router.add_post("/arena/fight", arena_fight)
     app.router.add_post("/arena/result", arena_result)
+    for p, h in (("/guild/me", guild_me), ("/guild/create", guild_create), ("/guild/join", guild_join), ("/guild/leave", guild_leave),
+                 ("/wb/state", wb_state_api), ("/wb/start", wb_start), ("/wb/hit", wb_hit), ("/wb/claim", wb_claim)):
+        app.router.add_post(p, h)
+        app.router.add_route("OPTIONS", p, health)
     for p in ("/notify", "/score", "/top", "/me", "/arena/state", "/arena/fight", "/arena/result"):
         app.router.add_route("OPTIONS", p, health)
     app.router.add_get("/", health)
