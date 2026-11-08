@@ -15,9 +15,9 @@ import random
 import time
 from urllib.parse import parse_qsl
 
-from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command, CommandStart
+from aiogram.types import BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, MenuButtonWebApp, Message, WebAppInfo
 import aiohttp
 from aiohttp import web
 
@@ -437,6 +437,68 @@ async def top(request: web.Request):
     return web.json_response({"top": [{"n": r["name"], "s": r["best"], "me": r["uid"] == uid} for r in rk], "me": me, "total": await total_best()})
 
 
+def play_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚔️ Играть", web_app=WebAppInfo(url=GAME_URL))],
+        [InlineKeyboardButton(text="📖 Как играть", callback_data="help"),
+         InlineKeyboardButton(text="🏆 Рейтинг", web_app=WebAppInfo(url=GAME_URL))],
+    ])
+
+
+WELCOME = (
+    "🔥 <b>ПЕПЕЛ ЭЛЬДАРЫ</b> 🔥\n"
+    "<i>Земли пали во тьму. Лишь герои способны вернуть свет.</i>\n\n"
+    "⚔️ Собери отряд героев и сражайся с чудовищами\n"
+    "🐾 Вырасти питомцев и одень их в броню\n"
+    "🗼 Покори Башню испытаний\n"
+    "🏰 Вступи в гильдию и убей мирового босса\n\n"
+    "Жми <b>«Играть»</b> — и в бой!"
+)
+HELP = (
+    "📖 <b>Как играть</b>\n\n"
+    "• Бои идут сами — жми ⚔️ для атаки и ✨ для умения\n"
+    "• Из врагов падают предметы и золото — улучшай героев\n"
+    "• 🐾 Питомцы: яйца в магазине, развитие и экспедиции\n"
+    "• 🗼 Башня, ⚒ Кузница и 🏰 Гильдия — кнопки справа на сцене\n"
+    "• Заходи каждый день: награда за серию дней растёт\n\n"
+    "Я пришлю напоминание, когда тебя ждёт награда."
+)
+
+
+@dp.message(CommandStart())
+async def start(m: Message):
+    try:
+        await touch(m.from_user.id, (m.from_user.first_name or "Герой")[:20])
+    except Exception:
+        pass
+    players.setdefault(str(m.from_user.id), {"last": time.time(), "reminded": 0})
+    save()
+    await m.answer(WELCOME, parse_mode="HTML", reply_markup=play_kb())
+
+
+@dp.message(Command("help"))
+async def help_cmd(m: Message):
+    await m.answer(HELP, parse_mode="HTML", reply_markup=play_kb())
+
+
+@dp.callback_query(F.data == "help")
+async def help_cb(c: CallbackQuery):
+    await c.answer()
+    await c.message.answer(HELP, parse_mode="HTML", reply_markup=play_kb())
+
+
+async def setup_profile():
+    """Оформление бота: команды, описание, «о боте» (то же, что делается в BotFather)."""
+    try:
+        await bot.set_my_commands([BotCommand(command="start", description="⚔️ Играть"),
+                                   BotCommand(command="help", description="📖 Как играть")])
+        await bot.set_my_description("Тёмное фэнтези RPG: герои, питомцы, Башня испытаний, гильдии и мировой босс. Жми «Старт»!")
+        await bot.set_my_short_description("🔥 Пепел Эльдары — тёмное фэнтези RPG")
+        await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(text="⚔️ Играть", web_app=WebAppInfo(url=GAME_URL)))
+    except Exception as e:
+        print("setup_profile:", e)
+
+
 async def notify(request: web.Request):
     try:
         body = await request.json()
@@ -771,6 +833,7 @@ async def main():
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", PORT).start()
     asyncio.create_task(reminders())
+    await setup_profile()
     await dp.start_polling(bot)
 
 
