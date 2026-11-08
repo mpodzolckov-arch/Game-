@@ -1412,8 +1412,8 @@ const petArt=(id,t)=>(window.NPET&&NPET[id]?NPET[id][t|0]:PR[id]().replace(/<\/g
 const mk=c=>{const d=CL[c];return{cls:c,lvl:1,xp:0,wl:0,sl:0,arm:0,t:0,cd:0,hun:100,rez:0,wt:0,lw:null,la:null,maxHp:d.hp,hp:d.hp,atk:d.atk,def:d.def};};
 const wp=h=>m.ex[h.cls]?CL[h.cls].x:CL[h.cls].w;
 const X=h=>m.ex[h.cls]?2:1;
-const A=h=>Math.round((h.atk+h.wl*wp(h)[2]+(h.lw?h.lw.v:0)+(h.tm|0)*3)*(1+.03*tlv(h,"a"))*(h.hun<=0?.7:1));
-const D=h=>h.def+ARM[h.arm][1]+(h.la?h.la.v:0)+(h.ta|0);
+const A=h=>Math.round((h.atk+h.wl*wp(h)[2]+(h.lw?ev(h.lw):0)+(h.lr?ev(h.lr):0)+(h.tm|0)*3)*(1+.03*tlv(h,"a"))*(h.hun<=0?.7:1));
+const D=h=>h.def+ARM[h.arm][1]+(h.la?ev(h.la):0)+(h.lh?Math.round(ev(h.lh)*.7):0)+(h.ta|0);
 const need=l=>Math.round(30+22*l+.9*l*l);
 const sel=()=>s.heroes[s.sel]||s.heroes[0];
 const costs=h=>({pot:12+s.stage*2,food:Math.round(4+s.stage*.5),sword:Math.round((15+h.wl*h.wl*5+h.wl*15)*(h.wl>20?1+(h.wl-20)*.2:1))});
@@ -1421,7 +1421,11 @@ const tlv=(h,k)=>(h.tl&&h.tl[k])|0;
 const skCd=h=>Math.max(2,CL[h.cls].cd-Math.floor((h.sl|0)/4)-(tlv(h,"m")>=5?1:0)-(tlv(h,"m")>=10?1:0));
 const skM=h=>1+.12*(h.sl|0)+.05*tlv(h,"m");
 const slCost=h=>Math.round(150*((h.sl|0)+1)**2*(1+s.stage/60));
-const itemTxt=it=>'<b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+" "+it.n+"</b> "+(it.t==="w"?"⚔️+":"🛡️+")+it.v;
+const ev=it=>Math.round(it.v*(1+.1*(it.u|0)));
+const ITM={w:["⚔️","+","",0],a:["🛡️","+","",1],h:["⛑️","🛡️+","",2],r:["💍","⚔️+","",3],m:["📿","💰+","%",4]};
+const itV=it=>it.t==="m"?(ev(it)/5).toFixed(1):it.t==="h"?Math.round(ev(it)*.7):ev(it);
+const itemTxt=it=>'<b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+" "+it.n+(it.u?" +"+it.u:"")+"</b> "+(it.t==="w"?"⚔️+":it.t==="a"?"🛡️+":it.t==="h"?"⛑️ 🛡️+":it.t==="r"?"💍 ⚔️+":"📿 💰+")+itV(it)+(it.t==="m"?"%":"");
+const SLK={w:"lw",a:"la",h:"lh",r:"lr",m:"lm"};
 const allH=()=>s.heroes.concat(s.bench);
 const skOwn=(k,c,r)=>!!m.sk[k+":"+c+":"+r];
 const skEq=(k,c)=>{const v=m.eq[k+":"+c];return v===undefined?-1:v;};
@@ -1435,9 +1439,13 @@ function gainXp(h,x){
   return up;
 }
 function levelTo(h,L){h.lvl=L;h.maxHp+=5*(L-1);h.atk+=.8*(L-1);h.def+=Math.floor(L/5);h.hp=h.maxHp;}
+const LH=["Шлем чудовища","Корона костей","Венец бури","Маска тьмы"],LR=["Кольцо гнева","Перстень охотника","Печать клыка","Кольцо тени"],LM=["Амулет удачи","Клык-талисман","Око дракона","Слеза феникса"];
 function drop(){
-  const k=s.stage/20,r=Math.random()<.04+k/400?3:Math.random()<.15+k/200?2:Math.random()<.45?1:0,w=Math.random()<.5;
-  const it={t:w?"w":"a",r,v:Math.round((4+s.stage**.6)*RAR[r][2]*(w?1:.8)),n:(w?LW:LA)[rnd(0,3)]};
+  const k=s.stage/20,r=Math.random()<.004+k/5000?4:Math.random()<.04+k/400?3:Math.random()<.15+k/200?2:Math.random()<.45?1:0,x=Math.random(),t=x<.3?"w":x<.55?"a":x<.73?"h":x<.88?"r":"m";
+  const base=Math.round((4+s.stage**.6)*RAR[r][2]);
+  const v=t==="w"?base:t==="a"?Math.round(base*.8):t==="h"?Math.round(base*.7):t==="r"?Math.round(base*.6):Math.max(1,Math.round(base*.5));
+  const nm=(t==="w"?LW:t==="a"?LA:t==="h"?LH:t==="r"?LR:LM)[rnd(0,3)];
+  const it={t,r,v,u:0,n:nm};
   s.inv.push(it);return it;
 }
 const dk=o=>{const d=new Date();d.setDate(d.getDate()+o);return d.toLocaleDateString("sv");};
@@ -1870,7 +1878,7 @@ function win(){
   bsAdd(en.name);
   const boss=en.boss,xp=Math.round((4+Math.round(3*s.stage**.85))*(s.ev&&s.ev.k==="eclipse"?1.5:1)*(en.gold?2:1));
   m.ko=(m.ko|0)+1;qAdd("ko");if(boss){m.bk=(m.bk|0)+1;qAdd("bk");SFX.win();}
-  s.gold+=Math.round(en.reward*(1+((m.gp|0)+(m.pp|0))/100));let up=0;
+  s.gold+=Math.round(en.reward*(1+((m.gp|0)+(m.pp|0)+s.heroes.reduce((q,h)=>q+(h.lm?ev(h.lm)/5:0),0))/100));let up=0;
   s.heroes.forEach(h=>{if(h.hp>0)h.hp=Math.min(h.maxHp,h.hp+10);up+=gainXp(h,xp)?1:0;});
   let t="🏆 "+en.name+" повержен! +"+en.reward+" 💰 +"+xp+" ✨"+(up?" 🆙":"");
   if(boss){
@@ -2728,6 +2736,9 @@ const IC={
  arm:'<path d="M12 8 H36 L40 18 L34 24 V40 H14 V24 L8 18Z" fill="#8a9098" '+OUT+'/><path d="M24 8 V40" stroke="#05060a" stroke-width="1.4" opacity=".6"/><path d="M14 12 L10 18 L16 22" stroke="#fff" stroke-width="1.4" fill="none" opacity=".6"/><path d="M24 20 l4 5 -4 5 -4 -5Z" fill="#e8c868"/>',
  wpn:'<path d="M38 6 L42 10 L22 30 L18 26Z" fill="#dfe6ee" '+OUT+'/><path d="M14 24 L24 34 M12 36 L8 40" stroke="#c9a040" stroke-width="4" stroke-linecap="round"/><path d="M10 34 L14 38" stroke="#8a5a2a" stroke-width="4" stroke-linecap="round"/>',
  exc:'<path d="M38 6 L42 10 L22 30 L18 26Z" fill="#fff1c8" '+OUT+'/><path d="M14 24 L24 34" stroke="#ff7a2a" stroke-width="4.4" stroke-linecap="round"/><path d="M10 36 L8 40" stroke="#8a5a2a" stroke-width="4" stroke-linecap="round"/><path d="M26 10 C28 6 32 4 34 2 C34 6 32 8 34 10 C30 10 28 12 26 10Z" fill="#ff7a2a" opacity=".9"/><circle cx="14" cy="14" r="3" fill="#ffe48a"/><circle cx="8" cy="22" r="2" fill="#ff7a2a"/>',
+ helm:'<path d="M10 32 V22 C10 10 38 10 38 22 V32 L32 32 V26 H16 V32Z" fill="#8a9098" '+OUT+'/><path d="M24 10 V24" stroke="#05060a" stroke-width="2"/><path d="M12 30 H36 V36 H12Z" fill="#5a6068" '+OUT+'/><path d="M22 6 L24 12 L26 6Z" fill="#e8283c"/>',
+ ring:'<circle cx="24" cy="28" r="12" fill="none" stroke="#e8c868" stroke-width="6"/><circle cx="24" cy="28" r="12" fill="none" stroke="#05060a" stroke-width="1.2"/><path d="M18 12 L24 4 L30 12 L24 18Z" fill="#e8283c" '+OUT+'/><path d="M22 10 L24 7" stroke="#fff" stroke-width="1.6"/>',
+ amu:'<path d="M12 6 Q24 30 36 6" fill="none" stroke="#c9a040" stroke-width="2.6"/><path d="M24 22 L34 32 L24 44 L14 32Z" fill="#2aff9a" '+OUT+'/><path d="M24 22 L24 44 M14 32 H34" stroke="#05060a" stroke-width="1.2" opacity=".5"/><path d="M19 29 L24 25" stroke="#fff" stroke-width="2" opacity=".8"/>',
  crown:'<path d="M8 36 L6 14 L16 24 L24 10 L32 24 L42 14 L40 36Z" fill="#e8c868" '+OUT+'/><circle cx="24" cy="10" r="2.4" fill="#e8283c"/><circle cx="6" cy="14" r="2" fill="#fff1c8"/><circle cx="42" cy="14" r="2" fill="#fff1c8"/>',
  star:'<path d="M24 5 L29 18 L43 19 L32 28 L36 42 L24 34 L12 42 L16 28 L5 19 L19 18Z" fill="#e8c868" '+OUT+'/>',
  bag:'<path d="M16 12 Q24 2 32 12 L38 40 H10Z" fill="#8a5a2a" '+OUT+'/><path d="M16 14 H32" stroke="#e8c868" stroke-width="3"/><path d="M20 26 H28 V34 H20Z" fill="#e8c868" stroke="#05060a" stroke-width="1.4"/>'
@@ -2744,11 +2755,16 @@ window.shopRender=function(h){
   rowI(ico("exc"),cl.x[1],"эксклюзивное оружие",m.ex[h.cls]?"✅":"♦️ "+EXC,"ex",!!m.ex[h.cls]||m.cr<EXC)+
   rowI(ico("pot"),"Зелье","лечит 50% или воскрешает сразу","💰 "+c.pot,"bpot",s.gold<c.pot)+
   rowI(ico("food"),"Еда ×3","утоляет голод отряда","💰 "+3*c.food,"bfood",s.gold<3*c.food)};
+const IK={w:"wpn",a:"arm",h:"helm",r:"ring",m:"amu"},SN={w:"Оружие",a:"Броня",h:"Шлем",r:"Кольцо",m:"Амулет"};
 window.bagRender=function(h){
- const slot=(it,k)=>it?rowI(ico(k==="w"?"wpn":"arm"),RAR[it.r][0]+" "+it.n,(k==="w"?"⚔️ +":"🛡️ +")+it.v,"","","","",' style="--rc:'+RAR[it.r][1]+';--rg:'+RAR[it.r][1]+'55"').replace('class="r ri"','class="r ri rar"'):rowI(ico(k==="w"?"wpn":"arm").replace(/fill="#[0-9a-f]+"/gi,'fill="#2a2a2a"'),k==="w"?"Оружие не надето":"Броня не надета","лут падает с боссов");
- let b=bannerH(h)+'<div class="hcht" style="font:700 11px Georgia,serif;letter-spacing:3px;color:#8fa694;text-align:center">НАДЕТО</div>'+slot(h.lw,"w")+slot(h.la,"a");
- b+='<div class="hcht" style="font:700 11px Georgia,serif;letter-spacing:3px;color:#8fa694;text-align:center;margin-top:10px">РЮКЗАК · '+s.inv.length+'</div>';
- b+=s.inv.length?s.inv.map((it,i)=>'<div class="r ri rar" style="--rc:'+RAR[it.r][1]+';--rg:'+RAR[it.r][1]+'44"><div class="ico">'+ico(it.t==="w"?"wpn":"arm")+'</div><div class="tx"><b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+' '+it.n+'</b><br><small>'+(it.t==="w"?"⚔️ +":"🛡️ +")+it.v+'</small></div><span class="bs" style="display:flex;flex-direction:column;gap:4px"><button class="sm" data-a="equip" data-i="'+i+'">Надеть</button><span style="display:flex;gap:4px"><button class="sm" data-a="sell" data-i="'+i+'">💰'+it.v*6+'</button><button class="sm" data-a="smelt" data-i="'+i+'">🔥+'+ORE(it.r)+'</button></span></span></div>').join(""):row("Рюкзак пуст","лут падает с боссов");
+ const hd=t=>'<div class="hcht" style="font:700 11px Georgia,serif;letter-spacing:3px;color:#8fa694;text-align:center;margin-top:10px">'+t+'</div>';
+ const slot=t=>{const it=h[SLK[t]];
+  if(!it)return rowI(ico(IK[t]).replace(/fill="#[0-9a-f]+"/gi,'fill="#2a2a2a"'),SN[t]+": пусто","лут падает с боссов");
+  const u=it.u|0,c=2+3*u;
+  return '<div class="r ri rar" style="--rc:'+RAR[it.r][1]+';--rg:'+RAR[it.r][1]+'55"><div class="ico">'+ico(IK[t])+'</div><div class="tx"><b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+" "+it.n+(u?" +"+u:"")+'</b><br><small>'+SN[t]+" · "+itemTxt(it).replace(/^.*<\/b> /,"")+(u>=10?" · макс. улучшение":"")+'</small></div>'+(u>=10?"":'<button data-a="iup" data-i="'+SLK[t]+'"'+(m.res.ore<c?" disabled":"")+'>⬆ 🔩 '+c+'</button>')+'</div>'};
+ let b=bannerH(h)+hd("НАДЕТО")+["w","a","h","r","m"].map(slot).join("")+'<div class="cht"><small>🔩 руда: '+m.res.ore+' · улучшение даёт +10% к бонусу предмета за уровень (до +10). Шлем даёт защиту, кольцо — атаку, амулет — золото за врагов.</small></div>';
+ b+=hd("РЮКЗАК · "+s.inv.length);
+ b+=s.inv.length?s.inv.map((it,i)=>'<div class="r ri rar" style="--rc:'+RAR[it.r][1]+';--rg:'+RAR[it.r][1]+'44"><div class="ico">'+ico(IK[it.t]||"arm")+'</div><div class="tx"><b style="color:'+RAR[it.r][1]+'">'+RAR[it.r][0]+' '+it.n+'</b><br><small>'+SN[it.t]+" · "+itemTxt(it).replace(/^.*<\/b> /,"")+'</small></div><span class="bs" style="display:flex;flex-direction:column;gap:4px"><button class="sm" data-a="equip" data-i="'+i+'">Надеть</button><span style="display:flex;gap:4px"><button class="sm" data-a="sell" data-i="'+i+'">💰'+it.v*6+'</button><button class="sm" data-a="smelt" data-i="'+i+'">🔥+'+ORE(it.r)+'</button></span></span></div>').join(""):row("Рюкзак пуст","лут падает с боссов");
  return b};
 // ---- достижения и рамка профиля ----
 const LC=["#e8a468","#cfd6e0","#ffd24a","#6ad8ff","#ff4a5c"];
@@ -2817,6 +2833,7 @@ try{const _g=guildRender;guildRender=function(){let b=_g();if(gd&&gd.g){b+=gbBlo
 window.XACT={
  spc(l){const x=ssm();l=+l;if(spLv()<l||x.c[l])return;x.c[l]=1;const r=fr(l);give(r);SFX.chest();log("🎫 Сезон, уровень "+l+": "+rtxt(r));},
  spp(l){const x=ssm();l=+l;if(spLv()<l||x.p[l]||!prem())return;x.p[l]=1;const r=pr(l);give(r);SFX.chest();log("🎫 Премиум, уровень "+l+": "+rtxt(r));},
+ iup(k){const h=sel();if(!h)return;const it=h[k];if(!it)return;const u=it.u|0,c=2+3*u;if(u>=10||m.res.ore<c)return;m.res.ore-=c;it.u=u+1;SFX.chest();log("⬆ "+it.n+" улучшен до +"+it.u);},
  gbgo(){if(s.wb||s.tw)return;gFetch("/gb/start",{},j=>{if(j.ok){s.wb={t:0,max:12,hp0:j.hp,max0:j.max,zi:j.zi,g:1};$("sheet").hidden=true;spawn();log("🏰 Бой с боссом гильдии начался: 12 ходов!");save();draw();}else gbMsg=j.limit?"Попытки на сегодня закончились.":j.dead?"Босс уже повержен!":"Не удалось начать бой.";});},
  gbclaim(){gFetch("/gb/claim",{},j=>{if(j.ok){m.cr+=j.cr;s.cg+=j.cg||0;gbMsg="Награда: ♦️ "+j.cr+" и 🟨 сундук";if(gbd&&gbd.y)gbd.y=null;SFX.chest();save();draw();}else gbMsg="Награда уже получена.";});}
 };
@@ -3094,7 +3111,7 @@ const ACT={...(window.XACT||{}),
   bfood(){const c=costs(sel()).food*3;if(s.gold<c)return;s.gold-=c;s.food+=3;},
   pot(){const h=sel();if(!h||s.pot<1||h.hp>=h.maxHp)return;s.pot--;const was=h.hp<=0;h.hp=Math.min(h.maxHp,Math.max(h.hp,0)+Math.ceil(h.maxHp/2));h.rez=0;log(was?"✨ "+CL[h.cls].i+" воскрешён зельем!":"🧪 "+CL[h.cls].i+" выпил зелье.");pop("h"+s.sel,"💚","h");},
   feed(){let n=0;s.heroes.forEach(h=>{if(h.hun<=70&&s.food>0){s.food--;h.hun=Math.min(100,h.hun+40);n++;}});if(n)log("🍖 Накормлено героев: "+n);},
-  equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=it.t==="w"?"lw":"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
+  equip(i){const h=sel(),it=s.inv[+i];if(!it)return;const k=SLK[it.t]||"la",old=h[k];h[k]=it;s.inv.splice(+i,1);if(old)s.inv.push(old);log("🎒 "+CL[h.cls].i+" надел: "+it.n);},
   sell(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);s.gold+=it.v*6;},
   claim(){const n=dailyDay();if(!n)return;const r=dRew(n);m.daily={d:dk(0),n};s.gold+=r.g;s.food+=r.f;s.pot+=r.p;s.cw+=r.cw;s.cg+=r.cg;log("🎁 День "+n+": +"+r.g+" 💰 +"+r.f+" 🍖");notify("daily","🎁 Награда за день "+n+" получена. Завтра будет новая!");},
   chest(){openChest();},phatch(){petHatch();},pbuy(){petBuy();},pact(i){petSet(i);},pup(i){petUp(i);},parm(i){petArmUp(i);},pstar(i){petStar(i);},tal(k){const h=sel();if(!h||talPts(h)<1||tlv(h,k)>=10)return;h.tl=h.tl||{};h.tl[k]=tlv(h,k)+1;SFX.chest();},talreset(){const h=sel();if(!h||s.gold<h.lvl*200)return;s.gold-=h.lvl*200;h.tl={};},gcreate(){const n=($("gn")&&$("gn").value||"").trim();if(m.cr<50)return;gFetch("/guild/create",{name:n},j=>{if(j.ok){m.cr-=50;gd=j;applyPerk();gMsg="Гильдия создана!";}else gMsg=GERR[j.error]||"Не удалось создать гильдию.";});},gjoin(id){gFetch("/guild/join",{gid:id},j=>{if(j.ok){gd=j;applyPerk();gMsg="Ты вступил в гильдию!";}else gMsg=GERR[j.error]||"Не удалось вступить.";});},gleave(){gFetch("/guild/leave",{},j=>{gd=j;applyPerk();gMsg="Ты покинул гильдию.";});},wbgo(){if(s.wb||s.tw)return;gFetch("/wb/start",{},j=>{if(j.ok){s.wb={t:0,max:12,hp0:j.hp,max0:j.max,zi:j.zi};$("sheet").hidden=true;spawn();log("🌍 Бой с мировым боссом начался: 12 ходов!");save();draw();}else{wMsg=j.dead?"Босс уже повержен — возвращайся завтра.":j.limit?"Попытки на сегодня закончились.":"Не удалось начать бой.";wbd=null;}});},wbclaim(){gFetch("/wb/claim",{},j=>{if(j.ok){wMsg="Награда получена: "+wbReward(j.d,j.killed,j.rank);SFX.chest();if(wbd&&wbd.y)wbd.y.cl=true;save();draw();}else wMsg="Награда уже получена или недоступна.";});},twgo(i){if(s.tw)return;s.tw=Math.max(1,+i);spawn();$("sheet").hidden=true;log("🗼 Вы вошли в башню: этаж "+s.tw);},twout(){if(!s.tw)return;s.tw=0;spawn();log("🚪 Вы вышли из башни.");},smelt(i){const it=s.inv[+i];if(!it)return;s.inv.splice(+i,1);m.res.ore+=ORE(it.r);},temper(k){const h=sel();if(!h)return;const key=k==="w"?"tm":"ta",l=h[key]|0;if(l>=25||m.res.ore<tmC(l))return;m.res.ore-=tmC(l);h[key]=l+1;SFX.chest();},craft(i){i=+i;const q=i>>1,w=!(i&1);if(m.res.ore<CRC[q])return;m.res.ore-=CRC[q];const it={t:w?"w":"a",r:q,v:Math.round((4+s.stage**.6)*RAR[q][2]*(w?1:.8)),n:(w?LW:LA)[rnd(0,3)]};s.inv.push(it);SFX.chest();log("⚒ Выкован предмет: "+it.n);},bclaim(k){const x=BSM.find(a=>a[0]===+k);if(!x||m.bc[x[0]]||Object.keys(m.bes).length<x[0])return;m.bc[x[0]]=1;m.cr+=x[1];SFX.chest();log("📖 Бестиарий: +"+x[1]+" ♦️");},pgo(i){petGo(+i);},shbuy(i){shBuy(i);},aseason(){gFetch("/arena/claim",{},j=>{if(j&&j.ok){m.cr+=j.cr;if(arena&&arena.ss)arena.ss.cl=true;log("🏆 Награда арены за неделю: +"+j.cr+" ♦️ (место #"+j.rank+")");SFX.chest();save();draw();}});},alg(i){const L=LG[+i];if(!L||!arena||!arena.me||arena.me.rating<L[1]||m.al[i])return;m.al[i]=1;m.cr+=L[2];log("🏅 Награда лиги «"+L[0]+"»: +"+L[2]+" ♦️");SFX.chest();},shdaily(){gFetch("/shop/claim",{daily:1},shApply);},pclaim(){petClaim();},
