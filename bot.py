@@ -31,6 +31,7 @@ SB_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SB_KEY = os.environ.get("SUPABASE_KEY", "")
 CLASSES = {"warrior", "mage", "archer", "assassin", "medic", "wmage", "fmage", "witch", "fairy", "swordsman", "lightning", "angel", "samurai", "druid", "pirate", "necro", "hunter", "bard"}
 ARENA_DAILY = 5
+ARENA_REWARD_FIGHTS = 10  # бои с наградой в день (сами бои без ограничений)
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
 ALLOWED = {"boss", "loot", "win", "hero", "daily"}
 
@@ -410,7 +411,7 @@ async def arena_state(request: web.Request):
     except Exception as e:
         print("arena extra", e)
         ss, rev = {}, []
-    return web.json_response({"ss": ss, "rev": rev, "me": {"rating": rating, "rank": await rank_rating(row), "left": max(0, ARENA_DAILY - used), "w": row.get("wins", 0), "l": row.get("losses", 0)},
+    return web.json_response({"ss": ss, "rev": rev, "me": {"rating": rating, "rank": await rank_rating(row), "left": 999, "rl": max(0, ARENA_REWARD_FIGHTS - used), "w": row.get("wins", 0), "l": row.get("losses", 0)},
                               "opps": items, "top": [{"n": t["name"], "r": t.get("rating", 1000), "me": t["uid"] == uid} for t in tops], "db": bool(SB_URL)})
 
 
@@ -428,8 +429,6 @@ async def arena_fight(request: web.Request):
     if not row or not row.get("squad"):
         raise web.HTTPBadRequest()
     used = row.get("used", 0) if row.get("day") == day_key() else 0
-    if used >= ARENA_DAILY:
-        return web.json_response({"error": "limit"})
     if target < 0:
         opp = make_bot(row["squad"], -target - 1, row.get("rating", 1000))
     else:
@@ -443,7 +442,7 @@ async def arena_fight(request: web.Request):
         except Exception as e:
             print("revenge_done", e)
     pending[uid] = {"opp": opp["uid"], "name": opp["name"], "orating": opp.get("rating", 1000), "t": time.time()}
-    return web.json_response({"opp": {"uid": opp["uid"], "name": opp["name"], "rating": opp.get("rating", 1000), "squad": opp["squad"]}, "left": ARENA_DAILY - used - 1})
+    return web.json_response({"opp": {"uid": opp["uid"], "name": opp["name"], "rating": opp.get("rating", 1000), "squad": opp["squad"]}, "left": 999})
 
 
 async def arena_result(request: web.Request):
@@ -480,7 +479,9 @@ async def arena_result(request: web.Request):
                 await bot.send_message(p["opp"], txt, reply_markup=play_kb())
             except Exception:
                 pass
-    return web.json_response({"ok": True, "delta": d, "rating": new, "reward": 3 if win else 0})
+    used_today = row.get("used", 0) if row.get("day") == day_key() else 0
+    rew = 3 if (win and used_today <= ARENA_REWARD_FIGHTS) else 0
+    return web.json_response({"ok": True, "delta": d, "rating": new, "reward": rew, "rl": max(0, ARENA_REWARD_FIGHTS - used_today)})
 
 
 async def score(request: web.Request):

@@ -1467,13 +1467,13 @@ function openCh(r){
     if(dv.length){const c=dv[rnd(0,dv.length-1)];m.unl[c]=true;chestMsg=t+"герой божественного класса — "+CL[c].i+" "+CL[c].n+"! Теперь его можно нанять бесплатно.";log(chestMsg);notify("loot","👑 Из божественного сундука выпал герой: "+CL[c].n+"!");return;}
   }
   const pool=[];
-  Object.keys(CL).forEach(c=>["w","h"].forEach(k=>{if(!skOwn(k,c,r))pool.push([k,c]);}));
+  Object.keys(CL).filter(c=>allH().some(x=>x.cls===c)||m.unl[c]).forEach(c=>["w","h"].forEach(k=>{if(!skOwn(k,c,r))pool.push([k,c]);}));
   if(pool.length){
     const [k,c]=pool[rnd(0,pool.length-1)];
     m.sk[k+":"+c+":"+r]=1;if(m.eq[k+":"+c]===undefined)m.eq[k+":"+c]=r;
     t+=(k==="h"?"скин героя":"скин оружия")+" ("+RAR[r][0]+") — "+CL[c].i+" "+CL[c].n+"!";
     if(r>=2)notify("loot","🎁 Из сундука выпал "+RAR[r][0].toLowerCase()+" скин: "+CL[c].n+"!");
-  }else{const b=[5,15,50,120,300][r];m.cr+=b;t+="все скины этого класса уже есть, +"+b+" ♦️";}
+  }else{const b=[5,15,50,120,300][r];m.cr+=b;t+="все скины открытых героев этой редкости уже есть, +"+b+" ♦️";}
   chestMsg=t;log(t);
 }
 function addChest(r,txt){
@@ -2602,7 +2602,7 @@ const pc=(a,b)=>Math.max(0,Math.min(100,a/b*100));
 window.arenaRender=function(me,md){
  const li=lgOf(me.rating),nx=LG[li+1],cur=LG[li],nm=x=>x.replace(/^\S+\s/,"");
  let b='<div class="tmh"><b>АРЕНА</b><small>БОИ ИГРОКОВ · РЕЙТИНГ И НАГРАДЫ</small></div>';
- b+='<div class="lgh" style="--lc:'+LC[li]+'"><div class="bd">'+lgBadge(li)+'</div><div class="tx"><b>'+nm(cur[0]).toUpperCase()+'</b><div class="rt">Рейтинг '+me.rating+' · место #'+(me.rank||"—")+'</div>'+(nx?'<div class="pb"><i style="width:'+pc(me.rating-cur[1],nx[1]-cur[1])+'%"></i></div><small>до «'+nm(nx[0])+'»: '+(nx[1]-me.rating)+' очков</small>':'<small>максимальная лига</small>')+'<small>победы '+me.w+' · поражения '+me.l+' · боёв сегодня '+me.left+' из 5</small></div></div>';
+ b+='<div class="lgh" style="--lc:'+LC[li]+'"><div class="bd">'+lgBadge(li)+'</div><div class="tx"><b>'+nm(cur[0]).toUpperCase()+'</b><div class="rt">Рейтинг '+me.rating+' · место #'+(me.rank||"—")+'</div>'+(nx?'<div class="pb"><i style="width:'+pc(me.rating-cur[1],nx[1]-cur[1])+'%"></i></div><small>до «'+nm(nx[0])+'»: '+(nx[1]-me.rating)+' очков</small>':'<small>максимальная лига</small>')+'<small>победы '+me.w+' · поражения '+me.l+' · бои без ограничений</small><small>'+(me.rl!==undefined?'♦️ наград за победу сегодня: '+me.rl+' из 10':'')+'</small></div></div>';
  if(!arena.db)b+='<div class="cht"><small>⚠️ без базы данных рейтинг пропадает при перезапуске сервера</small></div>';
  const ss=arena.ss||{};
  if(ss.rank&&ss.rew&&!ss.cl)b+='<div class="hhire"><div class="pl"></div><div class="tx"><b>Награда за неделю</b><small>место #'+ss.rank+' · ♦️ '+ss.rew+'</small></div><button data-a="aseason">Забрать</button></div>';
@@ -2613,8 +2613,45 @@ window.arenaRender=function(me,md){
  b+='<div class="hcht">СОПЕРНИКИ</div>'+arena.opps.map(o=>opp(o,0)).join("")+'<div style="text-align:center;margin:4px 0"><button class="sm" data-a="arefresh" style="padding:8px 16px">🔄 Другие соперники</button></div>';
  b+='<div class="hcht">НАГРАДЫ ЗА ЛИГИ · ОДИН РАЗ</div><div class="lgt">'+LG.map((l,k)=>{const ok=me.rating>=l[1],dn=m.al[k];return '<div class="'+(k===li?'cur ':'')+'"><div class="bd" style="'+(ok?'':'filter:grayscale(1) brightness(.45)')+'">'+lgBadge(k)+'</div><b>'+nm(l[0])+'</b><small>'+(k?'от '+l[1]:'старт')+'</small>'+(k?'<button data-a="alg" data-i="'+k+'"'+(!ok||dn?' disabled':'')+'>'+(dn?'✅':ok?'♦️ '+l[2]:'🔒 '+l[2])+'</button>':'')+'</div>'}).join("")+'</div>';
  b+='<div class="hcht">ЛУЧШИЕ НА АРЕНЕ</div>'+arena.top.map((t,i)=>'<div class="tpr'+(t.me?' me':'')+'"><b>'+(md[i]||"#"+(i+1))+'</b><div class="bd">'+lgBadge(lgOf(t.r))+'</div><span>'+esc(t.n)+'</span><b>'+t.r+'</b></div>').join("");
- b+='<div class="cht"><small>Твой отряд на арене — тот, что в бою сейчас. Победа: +3 ♦️. Защитник получит уведомление в бот.</small></div>';
+ b+='<div class="cht"><small>Твой отряд на арене — тот, что в бою сейчас. Награда +3 ♦️ за победу в первых 10 боях дня. Защитник получит уведомление в бот.</small></div>';
  return b};
+}catch(e){}})();
+// ===== БОЙ НА АРЕНЕ В НОВОМ СТИЛЕ =====
+(function(){try{
+const st=document.createElement("style");st.textContent=`
+.bvs{display:flex;gap:6px;padding:4px 0}
+.bu{flex:1;min-width:0;text-align:center;position:relative}
+.bu .ar{height:96px;border-radius:40px 40px 8px 8px;position:relative;background:linear-gradient(#10161a,#06090b);border:2px solid #4a3a14;box-shadow:inset 0 0 14px #000;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.bu.f .ar{border-color:#6a2a2a;background:linear-gradient(#1a1012,#080506)}
+.bu .ar:before{content:"";position:absolute;left:50%;top:20%;width:76px;height:76px;margin-left:-38px;border-radius:50%;background:radial-gradient(var(--g,#46c47a),transparent 70%);opacity:.5}
+.bu.f .ar:before{--g:#e5484d}
+.bu .ar svg{height:76px;width:auto;margin-bottom:12px;position:relative;overflow:visible}.bu.f .ar svg{transform:scaleX(-1)}
+.bu.dead .ar{filter:grayscale(1) brightness(.5)}.bu.dead .ar:after{content:"☠";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:#c8c8c8}
+.bu .hb{position:absolute;left:5px;right:5px;bottom:5px;height:5px;border-radius:3px;background:#200;border:1px solid #000;overflow:hidden}.bu .hb i{display:block;height:100%;background:linear-gradient(#9affb8,#2aa860)}.bu.f .hb i{background:linear-gradient(#ff8a7a,#c01820)}
+.bu small{display:block;font:10px Georgia,serif;color:#c8bca0;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bhd{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:linear-gradient(135deg,#2a1214,#0b0708);border:2px solid #6a2a2a;box-shadow:inset 0 0 20px #000a}
+.bhd .bd{width:34px;flex:none}.bhd .bd svg{width:100%;display:block}.bhd b{display:block;font:700 15px Georgia,serif;color:#f2d98a}.bhd small{font:11px Georgia,serif;color:#b89a9a}
+.vsr{display:flex;align-items:center;gap:8px;margin:8px 0 4px}.vsr i{flex:1;height:2px;background:linear-gradient(90deg,transparent,#c9a040)}.vsr i:last-child{transform:scaleX(-1)}.vsr b{font:700 20px Georgia,serif;letter-spacing:3px;color:#e8c868;text-shadow:0 0 10px rgba(255,180,60,.5),0 2px 0 #000}
+.blg{min-height:104px;padding:9px 11px;margin:4px 0 8px;border-radius:11px;background:linear-gradient(#14110d,#080706);border:2px solid #3a2e10;box-shadow:inset 0 0 18px #000;font:12px/1.5 Georgia,serif;color:#d8ccb0}.blg div:first-child{color:#fff1c8}.blg div{opacity:.85}
+.bres{text-align:center;padding:14px 10px;margin:6px 0;border-radius:14px;border:2px solid #e8c868;background:radial-gradient(ellipse at 50% 0,rgba(255,200,90,.28),rgba(10,8,4,.95) 70%);box-shadow:0 0 18px rgba(255,190,80,.35)}
+.bres.l{border-color:#8a2a2a;background:radial-gradient(ellipse at 50% 0,rgba(220,50,60,.28),rgba(10,4,5,.95) 70%);box-shadow:0 0 18px rgba(220,40,50,.3)}
+.bres h2{margin:0;font:700 26px Georgia,serif;letter-spacing:5px;padding-left:5px;background:linear-gradient(#fff6d0,#e8c868 55%,#8a5a14);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #000)}
+.bres.l h2{background:linear-gradient(#ffd0d0,#e85050 55%,#6a1010);-webkit-background-clip:text;background-clip:text}
+.bres p{margin:6px 0 0;font:13px Georgia,serif;color:#e8dcc0}.bres .dl{font:700 18px Georgia,serif;color:#7affc8}.bres.l .dl{color:#ff8a8a}
+.bbtn{display:block;width:100%;margin:6px 0;padding:11px;font:700 14px Georgia,serif;letter-spacing:2px;border-radius:11px;border:1.5px solid #05060a;color:#1a1004;background:linear-gradient(#ffe48a,#e0a828 60%,#9a6a10);box-shadow:inset 0 1px 0 #fff8,0 3px 0 #4a3008}
+.bbtn.sk{background:linear-gradient(#2a2c30,#14161a);color:#c8c8c8;border-color:#3a3a3a;box-shadow:0 3px 0 #000}
+`;document.head.appendChild(st);
+const GL={warrior:'#e8c868',mage:'#6a9aff',archer:'#7aff6a',assassin:'#ff4a4a',medic:'#7affc8',wmage:'#4ad8ff',fmage:'#ff7a2a',witch:'#a0ff4a',fairy:'#ff7ae8',swordsman:'#fff1b8',lightning:'#ffe84a',angel:'#fff1b8',samurai:'#ff5a5a',druid:'#9aff4a',pirate:'#ffb04a',necro:'#6aff9a',hunter:'#ff8a3a',bard:'#c070ff'};
+const uc=(u,hp,mx,foe)=>'<div class="bu'+(foe?" f":"")+(hp>0?"":" dead")+'" style="--g:'+(foe?"#e5484d":(GL[u.c]||"#46c47a"))+'"><div class="ar">'+heroArt(u.c,u.hs,u.ws)+'<div class="hb"><i style="width:'+pc(hp,mx)+'%"></i></div></div><small>'+(u.n?esc(u.n):CL[u.c].n)+'</small></div>';
+btRender=function(){
+ const f=bt.sim.frames[Math.min(bt.i,bt.sim.frames.length-1)];
+ let o='<div class="bhd"><div class="bd">'+(window.lgBadge?lgBadge(lgOf(bt.opp.rating)):"🛡️")+'</div><div><b>'+esc(bt.opp.name)+'</b><small>соперник · рейтинг '+bt.opp.rating+'</small></div></div>'+
+  '<div class="bvs">'+bt.opp.squad.map((u,i)=>uc(u,f.u[1][i][0],f.u[1][i][1],1)).join("")+'</div>'+
+  '<div class="vsr"><i></i><b>VS</b><i></i></div><div class="blg">'+f.log.map(x=>"<div>"+x+"</div>").join("")+'</div>'+
+  '<div class="bvs">'+bt.mine.map((u,i)=>uc(u,f.u[0][i][0],f.u[0][i][1],0)).join("")+'</div>';
+ if(bt.done){const r=bt.res,w=bt.sim.win;o+='<div class="bres'+(w?"":" l")+'"><h2>'+(w?"ПОБЕДА":"ПОРАЖЕНИЕ")+'</h2>'+(r&&r.ok?'<p><span class="dl">'+(r.delta>0?"+":"")+r.delta+'</span> · рейтинг '+r.rating+(r.reward?' · +'+r.reward+' ♦️':'')+'</p>':r?'<p><small>результат не засчитан (сервер: '+(r.error||"ошибка")+')</small></p>':'<p><small>отправляем результат...</small></p>')+'</div><button class="bbtn" data-a="btend">ПРОДОЛЖИТЬ</button>';}
+ else o+='<button class="bbtn sk" data-a="btskip">ПРОПУСТИТЬ БОЙ</button>';
+ return o};
 }catch(e){}})();
 const slowTurns=h=>{const r=h.lvl/(h.lvl+s.stage*.6+1);let t=Math.round(2+5*r+.5*(h.sl|0));if(en.boss)t=Math.round(t*.6);return Math.max(1,Math.min(10,t));};
 function attack(sk){
