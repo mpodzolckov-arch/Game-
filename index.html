@@ -5152,6 +5152,23 @@ const sc0=document.createElement("script");sc0.src=PIXI_URL;sc0.async=true;
 sc0.onload=()=>{boot()};sc0.onerror=()=>{failed=true};
 document.head.appendChild(sc0);
 }catch(e){console.log&&console.log("R1",e&&e.message)}})();
+/* v155: крупнее и читаемее меню */
+(function(){try{
+const st=document.createElement("style");st.textContent=`
+#sh{height:88%!important;max-height:88%!important}
+#sh .body{padding:8px 12px 24px}
+#sh .r{font-size:15.5px;padding:13px 14px;margin:10px 0;border-radius:15px;min-height:64px;gap:12px}
+#sh .r b{font-size:15.5px}
+#sh .r small{font-size:12.8px;line-height:1.38;color:#c4b594;margin-top:3px}
+#sh .r button{min-height:44px;min-width:64px;padding:9px 15px;font-size:14.5px;border-radius:12px}
+#sh .ri .ico{width:56px;height:56px}
+#sh .ri{gap:13px}
+#sh .subs button{font-size:13.5px;padding:9px 12px}
+#sh .cats button{font-size:10.5px}
+#sh .cht{font-size:14px;line-height:1.4;padding:11px 13px}
+#sh .tabs b{font-size:16px}
+`;document.head.appendChild(st);
+}catch(e){console.log&&console.log("U1",e&&e.message)}})();
 </script>
 </body>
 </html>
