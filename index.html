@@ -4982,8 +4982,10 @@ const st=document.createElement("style");st.textContent=`
 .gh.c .sc{height:84px!important}.gh.c .sc svg{height:84px!important}
 .gcl{height:clamp(110px,24vh,210px)!important}
 .gcs{position:sticky;bottom:0;background:#0f0b16;padding:6px 0 2px;z-index:3;display:flex;gap:6px}
-.gcs input{flex:1;min-width:0}
+.gcs input{flex:1;min-width:0;font-size:16px!important}
+#sh,#sh .body{max-width:100vw;overflow-x:hidden}
 `;document.head.appendChild(st);
+const _rr=render;render=function(){try{const a=document.activeElement;if(a&&a.id==='gci'&&document.getElementById('sh')&&document.getElementById('sh').contains(a))return}catch(e){}return _rr.apply(this,arguments)};
 const _gs=ACT.gsub;
 ACT.gsub=function(i){_gs&&_gs(i);try{if(i==="chat"){const b=document.querySelector("#sh .body");setTimeout(()=>{b&&(b.scrollTop=b.scrollHeight)},30)}}catch(e){}};
 }catch(e){console.log&&console.log("P1",e&&e.message)}})();
