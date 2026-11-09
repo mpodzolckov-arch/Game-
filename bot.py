@@ -17,7 +17,7 @@ from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
-from aiogram.types import BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo
+from aiogram.types import FSInputFile, BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo
 import aiohttp
 from aiohttp import web
 
@@ -586,6 +586,8 @@ async def notify(request: web.Request):
         uid = user_id(body.get("initData", ""))
         kind = body.get("type")
         text = str(body.get("text", ""))[:300]
+        ch = body.get("ch")
+        ch = int(ch) if ch is not None and 0 <= int(ch) <= 6 else None
     except Exception:
         raise web.HTTPBadRequest()
     if uid is None:
@@ -599,10 +601,22 @@ async def notify(request: web.Request):
         save()
     p["seen"] = time.time()
     save()
-    try:
-        await bot.send_message(uid, text, reply_markup=play_kb())
-    except Exception:
-        pass  # игрок не нажимал /start у бота — писать ему пока нельзя
+    sent = False
+    if ch is not None:
+        # уведомление о сундуке — картинкой сундука своей категории
+        base = os.path.dirname(os.path.abspath(__file__))
+        path = next((p for p in (os.path.join(base, "ch%d.png" % ch), os.path.join(base, "chests", "ch%d.png" % ch)) if os.path.exists(p)), None)
+        if path:
+            try:
+                await bot.send_photo(uid, FSInputFile(path), caption=text, reply_markup=play_kb())
+                sent = True
+            except Exception:
+                pass
+    if not sent:
+        try:
+            await bot.send_message(uid, text, reply_markup=play_kb())
+        except Exception:
+            pass  # игрок не нажимал /start у бота — писать ему пока нельзя
     return web.json_response({"ok": True})
 
 
@@ -820,7 +834,7 @@ async def guild_state(gs, uid):
         r = rows.get(m, {})
         mem.append({"n": r.get("name", "Герой"), "s": r.get("best", 0), "o": m == g["o"], "me": m == uid})
     mem.sort(key=lambda x: -x["s"])
-    g["pts"] = sum(x["s"] for x in mem)
+    g["pts"] = sum(x["s"] for x in mem) + int(g.get("don", 0))
     await kv_put("guilds", gs)
     top = sorted(gs["g"].items(), key=lambda kv: (-kv[1].get("bk", 0), -kv[1].get("pts", 0)))[:10]
     lst = [{"id": k, "n": v["name"], "c": len(v["m"]), "p": v.get("pts", 0), "bk": v.get("bk", 0)} for k, v in top]
@@ -881,6 +895,146 @@ async def guild_leave(uid, name, body):
         g["o"] = g["m"][0]
     await kv_put("guilds", gs)
     return await guild_state(gs, uid)
+
+
+# ---------- чат, склад и задания гильдии ----------
+QREW = {"ko": (10, 0), "bk": (15, 1), "dn": (10, 0)}  # награда каждому: кристаллы, золотой сундук
+
+
+def gq_goal(g):
+    n = max(3, len(g["m"]))
+    return {"ko": 400 * n, "bk": 3 * n, "dn": 20000 * n}
+
+
+def gq_get(g):
+    wk = gb_week()
+    q = g.get("q")
+    if not isinstance(q, dict) or q.get("wk") != wk:
+        q = {"wk": wk, "ko": 0, "bk": 0, "dn": 0, "cl": {}}
+        g["q"] = q
+    return q
+
+
+def gq_out(g, uid):
+    q = gq_get(g)
+    return {"q": {"ko": q["ko"], "bk": q["bk"], "dn": q["dn"], "goal": gq_goal(g),
+                  "cl": {k: 1 for k in QREW if str(uid) in q["cl"].get(k, [])}, "rew": {k: list(v) for k, v in QREW.items()}}}
+
+
+async def g_mine(uid):
+    gs = await guilds_load()
+    gid, g = guild_find(gs, uid)
+    return gs, gid, g
+
+
+@api
+async def guild_chat(uid, name, body):
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    return {"chat": g.get("chat", [])[-30:], "me": uid}
+
+
+@api
+async def guild_say(uid, name, body):
+    import re
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    t = re.sub(r"\s+", " ", str(body.get("text", "")).strip())[:120]
+    if not t:
+        return {"error": "empty"}
+    ch = g.setdefault("chat", [])
+    now = int(time.time())
+    if ch and ch[-1].get("u") == uid and now - ch[-1].get("ts", 0) < 2:
+        return {"error": "fast"}
+    ch.append({"u": uid, "n": name, "t": t, "ts": now})
+    del ch[:-60]
+    await kv_put("guilds", gs)
+    return {"ok": 1, "chat": ch[-30:], "me": uid}
+
+
+@api
+async def guild_bank(uid, name, body):
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    dn = g.get("dn", {})
+    rows = {int(r["uid"]): r for r in await players_rows([int(u) for u in dn])} if dn else {}
+    top = sorted(dn.items(), key=lambda kv: -kv[1])[:5]
+    return {"don": int(g.get("don", 0)), "my": int(dn.get(str(uid), 0)),
+            "top": [{"n": rows.get(int(u), {}).get("name", "Герой"), "d": int(v)} for u, v in top]}
+
+
+@api
+async def guild_donate(uid, name, body):
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    try:
+        gold = max(0, min(10_000_000, int(body.get("gold", 0))))
+        cr = max(0, min(5000, int(body.get("cr", 0))))
+    except (TypeError, ValueError):
+        return {"error": "bad"}
+    pts = gold // 1000 + cr * 10
+    if pts < 1:
+        return {"error": "small"}
+    g["don"] = int(g.get("don", 0)) + pts
+    dn = g.setdefault("dn", {})
+    dn[str(uid)] = int(dn.get(str(uid), 0)) + pts
+    gq_get(g)["dn"] += gold + cr * 1000
+    await kv_put("guilds", gs)
+    return {"ok": 1, "pts": pts, "don": g["don"], "my": dn[str(uid)]}
+
+
+@api
+async def guild_q(uid, name, body):
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    out = gq_out(g, uid)
+    await kv_put("guilds", gs)
+    return out
+
+
+@api
+async def guild_qrep(uid, name, body):
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    try:
+        ko = max(0, min(2000, int(body.get("ko", 0))))
+        bk = max(0, min(50, int(body.get("bk", 0))))
+    except (TypeError, ValueError):
+        return {"error": "bad"}
+    q = gq_get(g)
+    q["ko"] += ko
+    q["bk"] += bk
+    await kv_put("guilds", gs)
+    return gq_out(g, uid)
+
+
+@api
+async def guild_qclaim(uid, name, body):
+    gs, gid, g = await g_mine(uid)
+    if g is None:
+        return {"error": "noguild"}
+    k = str(body.get("k", ""))
+    if k not in QREW:
+        return {"error": "bad"}
+    q = gq_get(g)
+    if q[k] < gq_goal(g)[k]:
+        return {"error": "notyet"}
+    done = q["cl"].setdefault(k, [])
+    if str(uid) in done:
+        return {"error": "claimed"}
+    done.append(str(uid))
+    await kv_put("guilds", gs)
+    cr, cg = QREW[k]
+    out = gq_out(g, uid)
+    out.update({"ok": 1, "cr": cr, "cg": cg})
+    return out
+
 
 
 def wb_zi(day):
@@ -1151,6 +1305,8 @@ async def main():
     app.router.add_post("/arena/fight", arena_fight)
     app.router.add_post("/arena/result", arena_result)
     for p, h in (("/guild/me", guild_me), ("/guild/create", guild_create), ("/guild/join", guild_join), ("/guild/leave", guild_leave),
+                 ("/guild/chat", guild_chat), ("/guild/say", guild_say), ("/guild/bank", guild_bank), ("/guild/donate", guild_donate),
+                 ("/guild/q", guild_q), ("/guild/qrep", guild_qrep), ("/guild/qclaim", guild_qclaim),
                  ("/arena/claim", arena_claim), ("/shop/invoice", shop_invoice), ("/shop/state", shop_state), ("/shop/claim", shop_claim),
                  ("/gb/state", gb_state_api), ("/gb/start", gb_start), ("/gb/hit", gb_hit), ("/gb/claim", gb_claim),
                  ("/wb/state", wb_state_api), ("/wb/start", wb_start), ("/wb/hit", wb_hit), ("/wb/claim", wb_claim)):
