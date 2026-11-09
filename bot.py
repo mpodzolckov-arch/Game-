@@ -13,13 +13,14 @@ import json
 import os
 import random
 import time
+import urllib.parse
 from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types import FSInputFile, BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo
 import aiohttp
-from aiohttp import web
+from aiohttp import web, WSMsgType
 
 TOKEN = os.environ["BOT_TOKEN"]
 GAME_URL = os.environ.get("GAME_URL", "https://mpodzolckov-arch.github.io/Game-/")
@@ -484,6 +485,135 @@ async def arena_result(request: web.Request):
     return web.json_response({"ok": True, "delta": d, "rating": new, "reward": rew, "rl": max(0, ARENA_REWARD_FIGHTS - used_today)})
 
 
+# ===== Битва башен: живой бой 1 на 1 (подбор + ретрансляция) =====
+tb_queue = []
+
+
+def tb_clean(raw):
+    out = []
+    for k in (raw or [])[:8]:
+        k = str(k)[:16]
+        if k.isalnum() and k not in out:
+            out.append(k)
+    return out
+
+
+async def tb_send(p, obj):
+    try:
+        if not p["ws"].closed:
+            await p["ws"].send_json(obj)
+    except Exception:
+        pass
+
+
+async def tb_apply(win_p, lose_p):
+    """Рейтинг и счётчики после живого боя (по рейтингу на момент подбора)."""
+    try:
+        d = elo(win_p["rating"], lose_p["rating"], True)
+        rw = await db_get(win_p["uid"]) or {}
+        rl = await db_get(lose_p["uid"]) or {}
+        nw = max(0, rw.get("rating", 1000) + d)
+        nl = max(0, rl.get("rating", 1000) - max(1, d // 2 + 1))
+        await db_put(win_p["uid"], rating=nw, wins=rw.get("wins", 0) + 1)
+        await db_put(lose_p["uid"], rating=nl, losses=rl.get("losses", 0) + 1)
+        await tb_send(win_p, {"t": "res", "delta": nw - rw.get("rating", 1000), "rating": nw})
+        await tb_send(lose_p, {"t": "res", "delta": nl - rl.get("rating", 1000), "rating": nl})
+    except Exception as e:
+        print("tb_apply", e)
+
+
+async def tb_ws(request: web.Request):
+    ws = web.WebSocketResponse(heartbeat=15, max_msg_size=200000)
+    await ws.prepare(request)
+    me_p = None
+    try:
+        async for msg in ws:
+            if msg.type != WSMsgType.TEXT:
+                continue
+            try:
+                d = json.loads(msg.data)
+                t = d.get("t")
+            except Exception:
+                continue
+            if t == "join" and me_p is None:
+                u = user_info(d.get("initData", ""))
+                if u is None:
+                    await ws.send_json({"t": "err"})
+                    break
+                uid = int(u["id"])
+                row = await db_get(uid) or {}
+                if not row.get("squad"):
+                    try:
+                        await db_put(uid, name=(u.get("first_name") or "Игрок")[:20], squad=[{"c": "warrior", "l": 1, "hp": 100, "a": 10, "d": 0, "cd": 4, "sm": 1, "hs": -1, "ws": -1, "n": ""}])
+                        row = await db_get(uid) or {}
+                    except Exception as e:
+                        print("tb squad", e)
+                me_p = {"ws": ws, "uid": uid, "name": (u.get("first_name") or u.get("username") or "Игрок")[:20],
+                        "deck": tb_clean(d.get("deck")), "lv": d.get("lv") if isinstance(d.get("lv"), dict) else {},
+                        "tl": max(1, min(20, int(d.get("tl", 1) or 1))), "rating": row.get("rating", 1000), "room": None}
+                tb_queue[:] = [q for q in tb_queue if q["uid"] != uid and not q["ws"].closed]
+                if tb_queue:
+                    best = min(tb_queue, key=lambda q: abs(q["rating"] - me_p["rating"]))
+                    tb_queue.remove(best)
+                    room = {"host": best, "guest": me_p, "done": False}
+                    best["room"] = me_p["room"] = room
+                    for p, role, o in ((best, "host", me_p), (me_p, "guest", best)):
+                        p["role"] = role
+                        await tb_send(p, {"t": "start", "role": role, "opp": {"name": o["name"], "deck": o["deck"], "lv": o["lv"], "tl": o["tl"], "rating": o["rating"]}})
+                else:
+                    tb_queue.append(me_p)
+                    await ws.send_json({"t": "wait"})
+            elif t == "leave":
+                break
+            elif me_p and me_p.get("room"):
+                room = me_p["room"]
+                other = room["guest"] if me_p is room["host"] else room["host"]
+                if t == "snap" and me_p is room["host"]:
+                    await other["ws"].send_str(msg.data)
+                elif t == "cmd" and me_p is room["guest"]:
+                    await other["ws"].send_str(msg.data)
+                elif t == "end" and me_p is room["host"] and not room["done"]:
+                    room["done"] = True
+                    w = int(d.get("w", 0) or 0)
+                    await tb_send(other, {"t": "end", "w": w})
+                    if w > 0:
+                        await tb_apply(room["host"], room["guest"])
+                    elif w < 0:
+                        await tb_apply(room["guest"], room["host"])
+                    else:
+                        await tb_send(room["host"], {"t": "res", "delta": 0, "rating": room["host"]["rating"]})
+                        await tb_send(room["guest"], {"t": "res", "delta": 0, "rating": room["guest"]["rating"]})
+    except Exception as e:
+        print("tb_ws", e)
+    finally:
+        if me_p:
+            tb_queue[:] = [q for q in tb_queue if q is not me_p]
+            room = me_p.get("room")
+            if room and not room["done"]:
+                room["done"] = True
+                other = room["guest"] if me_p is room["host"] else room["host"]
+                await tb_send(other, {"t": "left"})
+                await tb_apply(other, me_p)
+        if not ws.closed:
+            await ws.close()
+    return ws
+
+
+async def tb_state(request: web.Request):
+    try:
+        body = await request.json()
+        u = user_info(body.get("initData", ""))
+    except Exception:
+        raise web.HTTPBadRequest()
+    if u is None:
+        raise web.HTTPForbidden()
+    uid = int(u["id"])
+    row = await db_get(uid) or {}
+    tops = await top_rating(10)
+    return web.json_response({"rating": row.get("rating", 1000), "rank": await rank_rating(row) if row else 0, "w": row.get("wins", 0), "l": row.get("losses", 0),
+                              "online": len(tb_queue), "top": [{"n": t["name"], "r": t.get("rating", 1000), "me": t["uid"] == uid} for t in tops]})
+
+
 async def score(request: web.Request):
     try:
         body = await request.json()
@@ -529,11 +659,13 @@ def play_kb():
 WELCOME = (
     "🔥 <b>ПЕПЕЛ ЭЛЬДАРЫ</b> 🔥\n"
     "<i>Земли пали во тьму. Лишь герои способны вернуть свет.</i>\n\n"
-    "⚔️ Собери отряд героев и сражайся с чудовищами\n"
-    "🐾 Вырасти питомцев и одень их в броню\n"
-    "🗼 Покори Башню испытаний\n"
-    "🏰 Вступи в гильдию и убей мирового босса\n\n"
-    "Жми <b>«Играть»</b> — и в бой!"
+    "{hi}, у тебя есть шанс стать легендой:\n\n"
+    "⚔️ Собери отряд героев и разгроми чудовищ\n"
+    "🐉 Победи мирового босса вместе с гильдией\n"
+    "🐾 Вырасти питомцев, одень их в броню\n"
+    "🏰 Сразись в «Битве башен» и на арене\n"
+    "🗼 Покори Башню испытаний\n\n"
+    "🎁 <b>Награда дня уже ждёт тебя!</b>"
 )
 HELP = (
     "📖 <b>Как играть</b>\n\n"
@@ -544,17 +676,73 @@ HELP = (
     "• Заходи каждый день: награда за серию дней растёт\n\n"
     "Я пришлю напоминание, когда тебя ждёт награда."
 )
+WELCOME_IMG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "welcome.jpg")
+_welcome_fid = None
+_bot_username = None
+
+
+async def invite_link(uid):
+    global _bot_username
+    if not _bot_username:
+        try:
+            _bot_username = (await bot.get_me()).username
+        except Exception:
+            _bot_username = "my_game_agentbot"
+    return "https://t.me/%s?startapp=ref_%s" % (_bot_username, uid)
+
+
+async def menu_kb(uid):
+    link = await invite_link(uid)
+    share = "https://t.me/share/url?url=%s&text=%s" % (
+        urllib.parse.quote(link, safe=""),
+        urllib.parse.quote("🔥 Заходи в «Пепел Эльдары» — собери героев и победи дракона! Получишь бонус за вход ♦️", safe=""))
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚔️  ИГРАТЬ  ⚔️", web_app=WebAppInfo(url=GAME_URL))],
+        [InlineKeyboardButton(text="🎁 Награда дня", web_app=WebAppInfo(url=GAME_URL)),
+         InlineKeyboardButton(text="🏰 Гильдия", web_app=WebAppInfo(url=GAME_URL))],
+        [InlineKeyboardButton(text="🏆 Рейтинг", web_app=WebAppInfo(url=GAME_URL)),
+         InlineKeyboardButton(text="📖 Как играть", callback_data="help")],
+        [InlineKeyboardButton(text="👥 Позвать друга  +20 ♦️", url=share)],
+    ])
 
 
 @dp.message(CommandStart())
 async def start(m: Message):
+    global _welcome_fid
     try:
         await touch(m.from_user.id, (m.from_user.first_name or "Герой")[:20])
     except Exception:
         pass
     players.setdefault(str(m.from_user.id), {"last": time.time(), "reminded": 0})
     save()
-    await m.answer(WELCOME, parse_mode="HTML", reply_markup=play_kb())
+    name = (m.from_user.first_name or "Герой")[:20].replace("<", "").replace(">", "").replace("&", "")
+    text = WELCOME.format(hi="<b>%s</b>" % name)
+    kb = await menu_kb(m.from_user.id)
+    try:
+        await bot.send_chat_action(m.chat.id, "upload_photo")
+        if _welcome_fid:
+            await m.answer_photo(_welcome_fid, caption=text, parse_mode="HTML", reply_markup=kb)
+            return
+        if os.path.exists(WELCOME_IMG):
+            sent = await m.answer_photo(FSInputFile(WELCOME_IMG), caption=text, parse_mode="HTML", reply_markup=kb)
+            if sent.photo:
+                _welcome_fid = sent.photo[-1].file_id
+            return
+    except Exception as e:
+        print("welcome photo:", e)
+    await m.answer(text, parse_mode="HTML", reply_markup=kb)
+
+
+@dp.message(Command("play"))
+async def play_cmd(m: Message):
+    await m.answer("⚔️ Герои ждут! Жми кнопку ниже:", reply_markup=play_kb())
+
+
+@dp.message(Command("invite"))
+async def invite_cmd(m: Message):
+    link = await invite_link(m.from_user.id)
+    await m.answer("👥 <b>Позови друга</b> — за каждого, кто зайдёт по твоей ссылке, получишь <b>+20 ♦️</b>, а друг — стартовый бонус.\n\n"
+                   "Твоя ссылка:\n<code>%s</code>" % link, parse_mode="HTML", reply_markup=await menu_kb(m.from_user.id))
 
 
 @dp.message(Command("help"))
@@ -571,9 +759,11 @@ async def help_cb(c: CallbackQuery):
 async def setup_profile():
     """Оформление бота: команды, описание, «о боте» (то же, что делается в BotFather)."""
     try:
-        await bot.set_my_commands([BotCommand(command="start", description="⚔️ Играть"),
+        await bot.set_my_commands([BotCommand(command="start", description="🔥 Главное меню"),
+                                   BotCommand(command="play", description="⚔️ Играть"),
+                                   BotCommand(command="invite", description="👥 Позвать друга"),
                                    BotCommand(command="help", description="📖 Как играть")])
-        await bot.set_my_description("Тёмное фэнтези RPG: герои, питомцы, Башня испытаний, гильдии и мировой босс. Жми «Старт»!")
+        await bot.set_my_description("🔥 ПЕПЕЛ ЭЛЬДАРЫ — тёмное фэнтези RPG.\n\n⚔️ Собери отряд героев\n🐉 Убей мирового босса с гильдией\n🐾 Выращивай питомцев\n🏰 Битвы башен и арена\n\nЖми «Старт» — и в бой!")
         await bot.set_my_short_description("🔥 Пепел Эльдары — тёмное фэнтези RPG")
         await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(text="⚔️ Играть", web_app=WebAppInfo(url=GAME_URL)))
     except Exception as e:
@@ -1301,6 +1491,8 @@ async def main():
     app.router.add_post("/top", top)
     app.router.add_post("/me", me)
     app.router.add_get("/stats", stats)
+    app.router.add_get("/tb/ws", tb_ws)
+    app.router.add_post("/tb/state", tb_state)
     app.router.add_post("/arena/state", arena_state)
     app.router.add_post("/arena/fight", arena_fight)
     app.router.add_post("/arena/result", arena_result)
@@ -1312,7 +1504,7 @@ async def main():
                  ("/wb/state", wb_state_api), ("/wb/start", wb_start), ("/wb/hit", wb_hit), ("/wb/claim", wb_claim)):
         app.router.add_post(p, h)
         app.router.add_route("OPTIONS", p, health)
-    for p in ("/notify", "/score", "/top", "/me", "/arena/state", "/arena/fight", "/arena/result"):
+    for p in ("/notify", "/score", "/top", "/me", "/tb/state", "/arena/state", "/arena/fight", "/arena/result"):
         app.router.add_route("OPTIONS", p, health)
     app.router.add_get("/", health)
     runner = web.AppRunner(app)
