@@ -5173,7 +5173,7 @@ const st=document.createElement("style");st.textContent=`
 /* v156: режим «Битва башен» (в стиле Клэш Рояль) — на Canvas, без внешних библиотек */
 (function(){try{
 const RANGED=new Set(["mage","wmage","fmage","lightning","witch","necro","druid","archer","hunter","fairy","bard","medic"]);
-const COST={warrior:3,swordsman:3,samurai:4,assassin:3,pirate:4,mage:4,wmage:4,fmage:4,lightning:5,witch:4,necro:5,druid:4,archer:3,hunter:3,fairy:3,bard:3,medic:3,angel:6};
+const COST={warrior:3,archer:3,hunter:3,medic:4,fairy:4,swordsman:4,assassin:4,bard:5,pirate:5,samurai:5,mage:5,wmage:6,fmage:6,druid:6,witch:6,lightning:7,necro:7,angel:8};const ER=4.2;
 const W=390,H=620,RIVER=H/2,TIME=180;
 const css=document.createElement("style");css.textContent=`
 #tbS{position:fixed;inset:0;z-index:200;background:#0b0710;display:none;flex-direction:column;font-family:Georgia,serif;color:#ffe9b0;-webkit-user-select:none;user-select:none;touch-action:none}
@@ -5201,34 +5201,37 @@ const css=document.createElement("style");css.textContent=`
 .tbc button{padding:13px 30px;font:700 16px Georgia,serif;color:#2a1608;border:2px solid #1b1226;border-radius:12px;background:linear-gradient(#ffe9a0,#d8a040);box-shadow:0 3px 0 #000}
 `;document.head.appendChild(css);
 const root=document.createElement("div");root.id="tbS";
-root.innerHTML='<div class="top"><button data-x="1">✕ Выйти</button><span class="tm">3:00</span><span class="sc">0 : 0</span></div><canvas id="tbC"></canvas><div class="bot"><div class="el"><i></i><b>💧 5</b></div><div class="hand"></div></div><div class="srch"><div style="font-size:24px;margin-bottom:8px">🔍 Поиск соперника</div><small></small><button data-x2="1">Отмена</button></div><div class="res"><h2></h2><div class="rp"></div><button data-x="1">Продолжить</button></div>';
+root.innerHTML='<div class="top"><button data-x="1">✕ Выйти</button><span class="tm">3:00</span><span class="sc">0 : 0</span></div><canvas id="tbC"></canvas><div class="bot"><div class="el"><i></i><b>💧 5</b></div><div class="hand"></div></div><div class="srch"><div style="font-size:24px;margin-bottom:8px">⚔️ Битва башен</div><small></small><button data-x2="1">Отмена</button></div><div class="res"><h2></h2><div class="rp"></div><button data-x="1">Продолжить</button></div>';
 document.body.appendChild(root);
 const cv=root.querySelector("#tbC"),ctx=cv.getContext("2d");
 let G=null,raf=0,imgs={};
-const getImg=(k,flip)=>{const key=k;if(imgs[key])return imgs[key];const im=new Image();imgs[key]=im;try{im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(HERO2(k).replace(/<filter[\s\S]*?<\/filter>/g,"").replace(/ filter="[^"]*"/g,"").replace(/<svg /,"<svg width=\"220\" height=\"270\" "))}catch(e){}return im};
+const getImg=(k,flip)=>{const key=k;if(imgs[key])return imgs[key];const im=new Image();imgs[key]=im;let u="";try{u="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(HERO2(k).replace(/<filter[\s\S]*?<\/filter>/g,"").replace(/ filter="[^"]*"/g,"").replace(/<svg /,"<svg width=\"220\" height=\"270\" "))}catch(e){}im.__u=u;im.__n=0;im.onerror=()=>{if(im.__n++<3)setTimeout(()=>{im.src=u+"#"+im.__n},250)};im.src=u;return im};
 const deckOf=()=>{let ks=[];try{ks=(s.heroes||[]).concat(s.bench||[]).map(h=>h.cls)}catch(e){}ks=[...new Set(ks.filter(k=>COST[k]))];
  ["warrior","archer","mage","medic","assassin","fairy","hunter","swordsman"].forEach(k=>{if(ks.length<8&&!ks.includes(k))ks.push(k)});return ks.slice(0,8)};
 const lvOf=k=>{try{const h=(s.heroes||[]).concat(s.bench||[]).find(x=>x.cls===k);return h?h.lvl|0:1}catch(e){return 1}};
-const stat=(k,side,lv)=>{const c=(typeof CL!=="undefined"&&CL[k])||{hp:70,atk:8};const f=1+Math.min(60,lv)*.035;return {hp:Math.round(c.hp*8*f),dmg:Math.round(c.atk*3.2*f),rng:RANGED.has(k)?110:26,spd:RANGED.has(k)?34:42,cd:RANGED.has(k)?1.1:.9,heal:k==="medic"}};
+const hs=k=>{try{const c=CL[k],h=(s.heroes||[]).concat(s.bench||[]).find(x=>x.cls===k);if(h)return [Math.round(h.maxHp),Math.round(A(h)),Math.round(D(h))];return [c.hp,c.atk,0]}catch(e){return [70,8,0]}};
+const stat=(k,sv)=>{const c=(typeof CL!=="undefined"&&CL[k])||{hp:70,atk:8};const rh=Math.max(.3,sv[0]/c.hp),ra=Math.max(.3,sv[1]/c.atk);return {hp:Math.round(c.hp*8*Math.pow(rh,.75)),dmg:Math.round(c.atk*3.2*Math.pow(ra,.75)),df:Math.max(0,Math.min(600,sv[2]||0)),rng:RANGED.has(k)?110:26,spd:RANGED.has(k)?34:42,cd:RANGED.has(k)?1.1:.9,heal:k==="medic"}};
 const lanes=[W*.25,W*.75];
 const TBMAX=20,tbLv=()=>{try{return Math.max(1,Math.min(TBMAX,m.tbl|0||1))}catch(e){return 1}};
 const tbMul=side=>{const L=tbLv()-1;return side===0?1+.14*L:1+.07*L};
 const tbCost=()=>Math.round(150*Math.pow(tbLv(),1.45));
 function mkTower(side,lane,king,f){f=f||1;const hp=Math.round((king?4200:2600)*f),dm=Math.round((king?95:75)*(1+(f-1)*.5));return {tw:1,side,x:king?W/2:lanes[lane],y:side===0?H-(king?44:120):(king?44:120),hp,max:hp,dmg:dm,rng:king?135:125,cd:0,king,on:!king,lane}}
-function start(pv){
+function start(pv){const ks=deckOf().concat((pv&&pv.opp.deck)||[]);root.classList.add("on");const t0=Date.now();ks.forEach(k=>getImg(k));
+  const chk=()=>{const ok=ks.every(k=>{const im=getImg(k);return im.complete&&im.naturalWidth>0});if(ok||Date.now()-t0>4000){srchUi(false);start2(pv)}else{srchUi(true,"Готовим героев…");setTimeout(chk,70)}};chk()}
+function start2(pv){
   const deck=deckOf(),hand=deck.slice(0,4),q=deck.slice(4);
   const L0=tbLv()-1,fO=1+.14*L0,fE=pv?1+.14*((pv.opp.tl||1)-1):1+.07*L0;
-  G={t:TIME,el:5,hand,q,sel:-1,units:[],fx:[],twr:[mkTower(0,0,0,fO),mkTower(0,1,0,fO),mkTower(0,2,1,fO),mkTower(1,0,0,fE),mkTower(1,1,0,fE),mkTower(1,2,1,fE)],ai:{el:5,next:2.5},deck,over:false,last:performance.now(),acc:0,lv:{},crowns:[0,0],pvp:pv||null,lvO:pv?(pv.opp.lv||{}):{},fxq:[],um:{},uid:0,sent:0,rat:null};
+  G={t:TIME,el:5,hand,q,sel:-1,units:[],fx:[],twr:[mkTower(0,0,0,fO),mkTower(0,1,0,fO),mkTower(0,2,1,fO),mkTower(1,0,0,fE),mkTower(1,1,0,fE),mkTower(1,2,1,fE)],ai:{el:5,next:2.5},deck,over:false,last:performance.now(),acc:0,lv:{},crowns:[0,0],pvp:pv||null,lvO:pv?(pv.opp.lv||{}):{},fxq:[],um:{},uid:0,sent:0,rat:null,ps:{}};
   if(pv&&pv.role==="host")wrapFx();
   if(pv)(pv.opp.deck||[]).forEach(k=>getImg(k));
-  deck.forEach(k=>{G.lv[k]=lvOf(k);getImg(k)});
+  deck.forEach(k=>{G.lv[k]=lvOf(k);G.ps[k]=hs(k);getImg(k)});
   root.classList.add("on");root.querySelector(".res").classList.remove("on");
   resize();drawHand();loop()}
 function resize(){const r=cv.getBoundingClientRect();const d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.max(2,Math.round(r.width*d));cv.height=Math.max(2,Math.round(r.height*d));if(G){const sc=Math.min(cv.width/W,cv.height/H);G.sx=G.sy=sc;G.ox=(cv.width-W*sc)/2;G.oy=(cv.height-H*sc)/2;G.d=d}}
 function drawHand(){const h=root.querySelector(".hand");h.innerHTML=G.hand.map((k,i)=>{const n=(CL[k]&&CL[k].n)||k;let sv="";try{sv=HERO2(k).replace(/<filter[\s\S]*?<\/filter>/g,"").replace(/filter="[^"]*"/g,"")}catch(e){}return '<div class="cd" data-r="'+(COST[k]>=5?2:COST[k]>=4?1:0)+'" data-i="'+i+'"><span class="c">'+COST[k]+'</span>'+sv+'<small>'+n.split(" ")[0]+'</small></div>'}).join("");let nx="";try{const nk=G.q[0];nx='<div class="nx">Далее'+HERO2(nk).replace(/<filter[\s\S]*?<\/filter>/g,"").replace(/filter="[^"]*"/g,"")+'</div>'}catch(e){}h.insertAdjacentHTML("afterbegin",nx);updHand()}
 function updHand(){root.querySelectorAll(".cd").forEach((c,i)=>{c.classList.toggle("sel",G.sel===i);c.classList.toggle("no",G.el<COST[G.hand[i]])});
   const f=root.querySelector(".el i");f.style.width=(G.el/10*100)+"%";root.querySelector(".el b").textContent="💧 "+Math.floor(G.el)}
-function spawn(k,side,x,y){const bm=side&&!G.pvp?(window.__tbBM||.85):1;const lv=side&&G.pvp?(G.lvO[k]||1):(G.lv[k]||(side?Math.max(1,Math.round((lvOf("warrior")+1)*.9)):1));const st=stat(k,side,side?Math.max(1,lv):lv);st.hp=Math.round(st.hp*bm);st.dmg=Math.round(st.dmg*bm);G.fx.push({x,y:y+12,t:.45,dust:1});G.units.push(Object.assign({id:++G.uid,k,side,x,y,hp:st.hp,max:st.hp,u:1,face:side?1:-1,cdT:Math.random()*.5},st));return 1}
+function spawn(k,side,x,y){const bm=side&&!G.pvp?(window.__tbBM||.85):1;const sv=side&&G.pvp?(G.lvO[k]||[CL[k].hp,CL[k].atk,0]):(G.ps[k]||hs(k));const st=stat(k,sv);st.hp=Math.round(st.hp*bm);st.dmg=Math.round(st.dmg*bm);G.fx.push({x,y:y+12,t:.45,dust:1});G.units.push(Object.assign({id:++G.uid,k,side,x,y,hp:st.hp,max:st.hp,u:1,face:side?1:-1,cdT:Math.random()*.5},st));return 1}
 function place(i,x,y){if(!G||G.over)return;const k=G.hand[i];if(!k||G.el<COST[k])return;if(y<RIVER+10)return;G.el-=COST[k];if(G.pvp&&G.pvp.role==="guest"){try{G.pvp.ws.send(JSON.stringify({t:"cmd",k,x:W-x,y:H-Math.min(H-70,y)}))}catch(e){}G.fx.push({x,y:y+12,t:.45,dust:1})}else spawn(k,0,x,Math.min(H-70,y));
   const nx=G.q.shift();G.q.push(k);G.hand[i]=nx;G.sel=-1;drawHand()}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -5236,13 +5239,13 @@ function targetFor(u){let best=null,bd=1e9;const lane=u.x<W/2?0:1;
   for(const e of G.units){if(e.side===u.side||e.hp<=0)continue;const d=dist(u,e);if(d<bd){bd=d;best=e}}
   for(const t of G.twr){if(t.side===u.side||t.hp<=0)continue;if(t.king&&!t.on&&!(G.twr.filter(q=>q.side===t.side&&!q.king&&q.hp>0).length<2))continue;const d=dist(u,t);if(d<bd){bd=d;best=t}}
   return best?{t:best,d:bd}:null}
-function hit(a,b,dmg){b.hp-=dmg;const nw=performance.now();if(b.tw)b.fl=nw;if(a.tw){a.aim=Math.atan2(b.y-a.y,b.x-a.x);a.shot=nw}else{a.hitT=nw;a.ha=Math.atan2(b.y-a.y,b.x-a.x)}
+function hit(a,b,dmg){if(b.u&&b.df)dmg=Math.max(1,Math.round(dmg*100/(100+b.df*2)));b.hp-=dmg;const nw=performance.now();if(b.tw)b.fl=nw;if(a.tw){a.aim=Math.atan2(b.y-a.y,b.x-a.x);a.shot=nw}else{a.hitT=nw;a.ha=Math.atan2(b.y-a.y,b.x-a.x)}
   if(a.tw||a.rng>40)G.fx.push({pr:1,x:a.x,y:a.y-(a.tw?(a.king?40:30):14),tx:b.x,ty:b.y-(b.tw?20:10),t:.2,T:.2,c:a.side?"#ff9a7a":"#9ad0ff",tw:a.tw});if(b.tw&&b.king)b.on=true;if(b.tw&&!b.king&&a.tw!==1){}
   G.fx.push({x:b.x+(Math.random()-.5)*14,y:b.y-18,txt:"-"+Math.round(dmg),t:0.7,c:a.side?"#ff8a8a":"#ffe27a"});
   for(let i=0;i<3;i++)G.fx.push({x:b.x,y:b.y-6,vx:(Math.random()-.5)*90,vy:-40-Math.random()*50,t:.35,p:1,c:a.side?"#ff5a5a":"#ffd23a"});
   if(a.u&&!a.rng||a.rng<40)G.fx.push({x:b.x,y:b.y-8,t:.18,ring:1})}
 function step(dt){
-  G.t-=dt;const er=G.t<60?2:1;G.el=Math.min(10,G.el+dt/2.8*er);G.ai.el=Math.min(10,G.ai.el+dt/2.8*er);
+  G.t-=dt;const er=G.t<60?2:1;G.el=Math.min(10,G.el+dt/ER*er);G.ai.el=Math.min(10,G.ai.el+dt/ER*er);
   /* бот */
   if(!G.pvp){G.ai.next-=dt;if(G.ai.next<=0){const c=G.deck.filter(k=>COST[k]<=G.ai.el);if(c.length){const k=c[Math.floor(Math.random()*c.length)];const en=G.units.filter(u=>u.side===0&&u.y<H*.75);const ln=en.length?(en[0].x<W/2?0:1):Math.floor(Math.random()*2);G.ai.el-=COST[k];G.lv[k]=G.lv[k]||1;spawn(k,1,lanes[ln]+(Math.random()-.5)*40,60+Math.random()*50);}G.ai.next=(3.2+Math.random()*2.6)/(G.t<60?1.8:1)}}
   /* юниты */
@@ -5410,7 +5413,7 @@ function snap(){const n=performance.now();if(n-(G.ls||0)<95)return;G.ls=n;const 
  const T=G.twr.map(t=>[Math.round(t.hp),t.max,t.on?1:0,t.aim===undefined?-9:Math.round(t.aim*100)/100,Math.round(n-(t.shot||0)),Math.round(n-(t.fl||0)),t.dead?1:0]);
  const F=G.fxq.splice(0).slice(0,60);
  try{ws.send(JSON.stringify({t:"snap",U,T,F,ge:Math.round(G.ai.el*100)/100,tm:Math.round(G.t*10)/10,cr:G.crowns}))}catch(e){}}
-function hostCmd(d){if(!G||G.over||!G.pvp||G.pvp.role!=="host")return;const k=String(d.k);if(!COST[k]||!(G.pvp.opp.deck||[]).includes(k)||G.ai.el<COST[k])return;let x=+d.x,y=+d.y;if(!isFinite(x)||!isFinite(y))return;x=Math.max(20,Math.min(W-20,x));y=Math.max(70,Math.min(RIVER-10,y));G.ai.el-=COST[k];spawn(k,1,x,y)}
+function hostCmd(d){if(!G||G.over||!G.pvp||G.pvp.role!=="host")return;const k=String(d.k);if(!COST[k]||!(G.pvp.opp.deck||[]).includes(k)||G.ai.el<COST[k])return;let x=+d.x,y=+d.y;if(!isFinite(x)||!isFinite(y))return;x=Math.max(20,Math.min(W-20,x));y=Math.max(70,Math.min(RIVER-10,y));G.ai.el-=COST[k];spawn(k,1,x,y)}function cleanSv(o){const r={};try{for(const k in o||{}){const a=o[k];if(!COST[k]||!Array.isArray(a))continue;r[k]=[Math.max(1,Math.min(300000,+a[0]||1)),Math.max(1,Math.min(60000,+a[1]||1)),Math.max(0,Math.min(6000,+a[2]||0))]}}catch(e){}return r}
 function applySnap(d){if(!G||G.over||!G.pvp)return;const now=performance.now();
  G.t=d.tm;G.crowns=[d.cr[1],d.cr[0]];if(typeof d.ge==="number")G.el=Math.max(0,Math.min(10,G.el+(d.ge-G.el)*.5));
  const seen={};for(const a of d.U){const id=a[0],fx=W-a[3],fy=H-a[4];let u=G.um[id];if(!u){u={id,k:a[1],side:a[2]^1,x:fx,y:fy,u:1,rng:RANGED.has(a[1])?110:26,face:-a[7]};G.um[id]=u;G.units.push(u);G.fx.push({x:fx,y:fy+12,t:.45,dust:1})}
@@ -5419,7 +5422,7 @@ function applySnap(d){if(!G||G.over||!G.pvp)return;const now=performance.now();
  d.T.forEach((a,i)=>{const t=G.twr[PERM[i]];if(!t)return;t.hp=a[0];t.max=a[1];t.on=!!a[2];if(a[3]>-9)t.aim=a[3]+Math.PI;if(a[4]<200)t.shot=now-a[4];if(a[5]<110)t.fl=now-a[5];if(a[6])t.dead=1});
  for(const f of d.F||[]){const g=Object.assign({},f);g.x=W-f.x;g.y=H-f.y;if(f.tx!==undefined){g.tx=W-f.tx;g.ty=H-f.ty}if(f.vx!==undefined)g.vx=-f.vx;
   if(f.crown)g.c=f.c==="#7ab8ff"?"#ff8a8a":"#7ab8ff";else if(f.c&&SWAP[f.c])g.c=SWAP[f.c];G.fx.push(g)}}
-function guestTick(dt){G.el=Math.min(10,G.el+dt/2.8*(G.t<60?2:1));const k=Math.min(1,dt*14);
+function guestTick(dt){G.el=Math.min(10,G.el+dt/ER*(G.t<60?2:1));const k=Math.min(1,dt*14);
  for(const u of G.units){if(u.tx!==undefined){u.x+=(u.tx-u.x)*k;u.y+=(u.ty-u.y)*k}}
  for(const f of G.fx){f.t-=dt;if(f.p){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vy+=220*dt}else if(f.txt)f.y-=26*dt}G.fx=G.fx.filter(f=>f.t>0);
  root.querySelector(".tm").textContent=Math.max(0,Math.floor(G.t/60))+":"+String(Math.max(0,Math.floor(G.t%60))).padStart(2,"0");
@@ -5434,10 +5437,10 @@ function pvpSearch(){
  let ws;try{ws=new WebSocket(wsUrl())}catch(e){pvpFallback("Нет связи с сервером");return}
  const S=srch={ws,t0:Date.now(),iv:0};
  S.iv=setInterval(()=>{const sec=Math.round((Date.now()-S.t0)/1000);srchUi(true,"Ищем соперника… "+sec+" с");if(sec>=15)pvpFallback("Соперник не найден — бой с ботом")},500);
- ws.onopen=()=>{const lv={};deckOf().forEach(k=>lv[k]=lvOf(k));ws.send(JSON.stringify({t:"join",initData:(typeof tg!=="undefined"&&tg&&tg.initData)||"",deck:deckOf(),lv,tl:tbLv()}))};
+ ws.onopen=()=>{const lv={};deckOf().forEach(k=>lv[k]=hs(k));ws.send(JSON.stringify({t:"join",initData:(typeof tg!=="undefined"&&tg&&tg.initData)||"",deck:deckOf(),lv,tl:tbLv()}))};
  ws.onerror=()=>{if(srch===S)pvpFallback("Нет связи с сервером")};
  ws.onmessage=ev=>{let d;try{d=JSON.parse(ev.data)}catch(e){return}
-  if(d.t==="start"){if(srch!==S)return;clearInterval(S.iv);srch=null;srchUi(false);start({role:d.role,ws,opp:d.opp});return}
+  if(d.t==="start"){if(srch!==S)return;clearInterval(S.iv);srch=null;srchUi(false);d.opp.lv=cleanSv(d.opp.lv);start({role:d.role,ws,opp:d.opp});return}
   if(d.t==="err"){if(srch===S)pvpFallback("Не удалось войти в бой");return}
   if(!G||!G.pvp||G.pvp.ws!==ws)return;
   if(d.t==="cmd")hostCmd(d);else if(d.t==="snap")applySnap(d);
@@ -5446,7 +5449,7 @@ function pvpSearch(){
   else if(d.t==="res"){G.rat=d;if(G.over){const rp=root.querySelector(".rp");if(rp&&G.base)rp.innerHTML=G.base+ratTxt()}}};
  ws.onclose=()=>{if(srch===S){pvpFallback("Нет связи с сервером");return}if(G&&G.pvp&&G.pvp.ws===ws&&!G.over){G.sent=1;G.leftMsg="Связь потеряна";finish(-1)}}}
 function pvpFallback(msg){if(srch){clearInterval(srch.iv);try{srch.ws.close()}catch(e){}srch=null}srchUi(false);try{note(msg)}catch(e){}start()}
-window.tbStart=start;window.__tbPlace=place;window.__tb=()=>G;window.__tbStep=step;
+window.tbStart=start2;window.__tbPlace=place;window.__tb=()=>G;window.__tbStep=step;
 /* вход из меню: подраздел «Башни» в категории «Бой» */
 let tbSt=null,tbT=0;
 function tbLoad(){if(Date.now()-tbT<8000)return;tbT=Date.now();try{post("/tb/state",{}).then(r=>r.json()).then(j=>{tbSt=j;if(tab==="tb")render()}).catch(()=>{})}catch(e){}}
@@ -5460,7 +5463,7 @@ function tbUp(){const L=tbLv(),mx=L>=TBMAX,c=tbCost(),ok=(s.gold||0)>=c;
  (mx?'<div style="margin-top:8px;color:#8affa8;font-size:13px">Максимальный уровень</div>':'<button data-a="tbup" style="margin-top:9px;padding:10px 18px;font-size:14px;'+(ok?'':'opacity:.5')+'">⬆ Улучшить — 💰 '+c+'</button>')+'</div>'}
 ACT.tbup=function(){const c=tbCost();if(tbLv()>=TBMAX)return;if((s.gold||0)<c){try{note("Не хватает золота: нужно "+c)}catch(e){}return}s.gold-=c;m.tbl=tbLv()+1;try{save();draw()}catch(e){}try{render()}catch(e){}};
 ACT.tbgo=function(){start()};ACT.tbpvp=function(){pvpSearch()};
-const _rr=render;render=function(){_rr.apply(this,arguments);try{if(tab==="tb"){const b=document.querySelector("#sh .body");if(b)b.innerHTML='<div class="tbc"><b>🏰 Битва башен</b><p>Бой в реальном времени, как в Клэш Рояль. Выпускай героев на поле, копи эликсир, ломай башни. Побеждает тот, кто разрушит королевскую башню или к концу трёх минут сломает больше башен.</p>'+tbRat()+'<button data-a="tbpvp">⚔️ Бой с игроком</button><button data-a="tbgo" style="margin-top:8px;font-size:13px;padding:9px 22px;background:linear-gradient(#7a6a8a,#4a3a5a);color:#ffe9b0">🤖 Тренировка с ботом</button>'+tbUp()+'</div>';tbLoad()}}catch(e){}};
+const _rr=render;render=function(){_rr.apply(this,arguments);try{if(tab==="tb"){const b=document.querySelector("#sh .body");if(b)b.innerHTML='<div class="tbc"><b>🏰 Битва башен</b><p>Бой в реальном времени, как в Клэш Рояль. Выпускай героев на поле, копи эликсир, ломай башни. Побеждает тот, кто разрушит королевскую башню или к концу трёх минут сломает больше башен.</p>'+tbRat()+'<button data-a="tbpvp">⚔️ Бой с игроком</button><button data-a="tbgo" style="margin-top:8px;font-size:13px;padding:9px 22px;background:linear-gradient(#7a6a8a,#4a3a5a);color:#ffe9b0">🤖 Тренировка с ботом</button>'+tbUp()+'</div>';tbLoad();deckOf().forEach(k=>getImg(k))}}catch(e){}};
 }catch(e){console.log&&console.log("V1",e&&e.message)}})();
 </script>
 </body>
