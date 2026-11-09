@@ -4998,6 +4998,16 @@ const st=document.createElement("style");st.textContent=`
 const _rr=render;render=function(){try{const a=document.activeElement;if(a&&a.id==='gci'&&document.getElementById('sh')&&document.getElementById('sh').contains(a))return}catch(e){}const r=_rr.apply(this,arguments);try{const sh=document.getElementById('sheet'),g=tab==='guild'&&!sh.hidden;sh.classList.toggle('gf',g);document.getElementById('app').classList.toggle('gf',g);const b=document.querySelector('#sh .body');if(b)b.classList.toggle('gchat',g&&window.__gsub==='chat');document.querySelectorAll('#sh .gh svg').forEach(v=>{try{v.pauseAnimations()}catch(e){}});const c=document.getElementById('gcl');if(c&&!c.dataset.s0){c.dataset.s0=1;c.scrollTop=c.scrollHeight}}catch(e){}return r};
 const _gs=ACT.gsub;
 ACT.gsub=function(i){_gs&&_gs(i);try{if(i==="chat"){const b=document.querySelector("#sh .body");setTimeout(()=>{b&&(b.scrollTop=b.scrollHeight)},30)}}catch(e){}};
+
+/* плавность боя: без тяжёлых filter-анимаций, мягкая тряска */
+try{
+const st2=document.createElement("style");st2.textContent="#foe.hit .fig{animation:nhf2 .3s ease-out!important}@keyframes nhf2{0%{opacity:.55}100%{opacity:1}}#foe .fig svg,#team svg,#foe .shd{will-change:transform}#scene{contain:layout paint}";document.head.appendChild(st2);
+const _an=Element.prototype.animate;
+Element.prototype.animate=function(k,o){
+ try{if(Array.isArray(k)&&k.some(f=>f&&f.filter!==undefined)){let hot=false;k=k.map((f,i)=>{if(!f||f.filter===undefined)return f;const g=Object.assign({},f);const m=/brightness\(([\d.]+)/.exec(String(g.filter));if(m&&+m[1]>1.4)hot=true;delete g.filter;if(m&&+m[1]>1.4)g.opacity=.6;else if(g.opacity===undefined&&i>0)g.opacity=1;return g});}}catch(e){}
+ return _an.call(this,k,o)};
+shake=function(a,d){try{const sc=$("scene"),k=[],n=10;for(let i=0;i<n;i++){const f=(1-i/n)*a*.8;k.push({transform:"translate("+rand(-f,f).toFixed(1)+"px,"+rand(-f,f).toFixed(1)+"px)"})}k.push({transform:"none"});sc.animate(k,{duration:d||240,easing:"ease-out"})}catch(x){}};
+}catch(e){console.log&&console.log("P1s",e&&e.message)}
 }catch(e){console.log&&console.log("P1",e&&e.message)}})();
 </script>
 </body>
