@@ -5205,7 +5205,7 @@ root.innerHTML='<div class="top"><button data-x="1">✕ Выйти</button><span
 document.body.appendChild(root);
 const cv=root.querySelector("#tbC"),ctx=cv.getContext("2d");
 let G=null,raf=0,imgs={};
-const getImg=(k,flip)=>{const key=k;if(imgs[key])return imgs[key];const im=new Image();imgs[key]=im;let u="";try{u="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(HERO2(k).replace(/<filter[\s\S]*?<\/filter>/g,"").replace(/ filter="[^"]*"/g,"").replace(/<svg /,"<svg width=\"220\" height=\"270\" "))}catch(e){}im.__u=u;im.__n=0;im.onerror=()=>{if(im.__n++<3)setTimeout(()=>{im.src=u+"#"+im.__n},250)};im.src=u;return im};
+const getImg=(k,flip)=>{const key=k;if(imgs[key])return imgs[key];const im=new Image();imgs[key]=im;let u="";try{const dv=document.createElement("div");dv.innerHTML=HERO2(k);const sv=dv.querySelector("svg");sv.querySelectorAll("filter").forEach(e=>e.remove());sv.querySelectorAll("[filter]").forEach(e=>e.removeAttribute("filter"));sv.setAttribute("width","220");sv.setAttribute("height","270");if(!sv.getAttribute("xmlns"))sv.setAttribute("xmlns","http://www.w3.org/2000/svg");u="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(new XMLSerializer().serializeToString(sv))}catch(e){}im.__u=u;im.__n=0;im.onerror=()=>{if(im.__n++<3)setTimeout(()=>{im.src=u+"#"+im.__n},250)};im.src=u;return im};
 const deckOf=()=>{let ks=[];try{ks=(s.heroes||[]).concat(s.bench||[]).map(h=>h.cls)}catch(e){}ks=[...new Set(ks.filter(k=>COST[k]))];
  ["warrior","archer","mage","medic","assassin","fairy","hunter","swordsman"].forEach(k=>{if(ks.length<8&&!ks.includes(k))ks.push(k)});return ks.slice(0,8)};
 const lvOf=k=>{try{const h=(s.heroes||[]).concat(s.bench||[]).find(x=>x.cls===k);return h?h.lvl|0:1}catch(e){return 1}};
@@ -5449,7 +5449,7 @@ function pvpSearch(){
   else if(d.t==="res"){G.rat=d;if(G.over){const rp=root.querySelector(".rp");if(rp&&G.base)rp.innerHTML=G.base+ratTxt()}}};
  ws.onclose=()=>{if(srch===S){pvpFallback("Нет связи с сервером");return}if(G&&G.pvp&&G.pvp.ws===ws&&!G.over){G.sent=1;G.leftMsg="Связь потеряна";finish(-1)}}}
 function pvpFallback(msg){if(srch){clearInterval(srch.iv);try{srch.ws.close()}catch(e){}srch=null}srchUi(false);try{note(msg)}catch(e){}start()}
-window.tbStart=start2;window.__tbPlace=place;window.__tb=()=>G;window.__tbStep=step;
+window.__tbImg=getImg;window.tbStart=start2;window.__tbPlace=place;window.__tb=()=>G;window.__tbStep=step;
 /* вход из меню: подраздел «Башни» в категории «Бой» */
 let tbSt=null,tbT=0;
 function tbLoad(){if(Date.now()-tbT<8000)return;tbT=Date.now();try{post("/tb/state",{}).then(r=>r.json()).then(j=>{tbSt=j;if(tab==="tb")render()}).catch(()=>{})}catch(e){}}
