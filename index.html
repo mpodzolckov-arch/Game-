@@ -5063,6 +5063,74 @@ skillFx=function(o,h,hp,ep){
   return r};
 window.__skEx=EXTRA;
 }catch(e){console.log&&console.log("Q1",e&&e.message)}})();
+/* v153: частицы и вспышки боя на движке PixiJS (WebGL); если движок не загрузился — работает как раньше */
+(function(){try{
+const PIXI_URL="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js";
+let app=null,cv=null,tex={},tw=[],ready=false,failed=false;
+const scn=()=>document.getElementById("scene");
+const hex=c=>{try{if(typeof c==="number")return c;c=String(c).trim();if(c[0]==="#"){if(c.length===4)c="#"+c[1]+c[1]+c[2]+c[2]+c[3]+c[3];return parseInt(c.slice(1,7),16)}const m=/(\d+)\D+(\d+)\D+(\d+)/.exec(c);if(m)return(+m[1]<<16)|(+m[2]<<8)|+m[3]}catch(e){}return 0xffffff};
+const mk=(sz,fn)=>{const k=document.createElement("canvas");k.width=k.height=sz;fn(k.getContext("2d"),sz);return PIXI.Texture.from(k)};
+function boot(){
+  try{
+    const sc=scn();if(!sc||!window.PIXI){failed=true;return}
+    app=new PIXI.Application({width:Math.max(2,sc.clientWidth),height:Math.max(2,sc.clientHeight),backgroundAlpha:0,antialias:false,resolution:Math.min(2,window.devicePixelRatio||1),autoDensity:true,powerPreference:"high-performance"});
+    cv=app.view;cv.style.cssText="position:absolute;left:0;top:0;width:100%;height:100%;z-index:8;pointer-events:none";sc.appendChild(cv);
+    app.ticker.autoStart=false;app.ticker.stop();
+    tex.dot=mk(64,(g,s)=>{const r=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);r.addColorStop(0,"#fff");r.addColorStop(.35,"#ffffffcc");r.addColorStop(1,"#ffffff00");g.fillStyle=r;g.fillRect(0,0,s,s)});
+    tex.sq=mk(32,(g,s)=>{g.fillStyle="#fff";g.fillRect(4,4,s-8,s-8)});
+    tex.ring=mk(128,(g,s)=>{g.lineWidth=9;g.strokeStyle="#fff";g.beginPath();g.arc(s/2,s/2,s/2-9,0,6.2832);g.stroke();g.lineWidth=18;g.strokeStyle="#ffffff44";g.beginPath();g.arc(s/2,s/2,s/2-12,0,6.2832);g.stroke()});
+    tex.soft=mk(64,(g,s)=>{const r=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);r.addColorStop(0,"#ffffffaa");r.addColorStop(1,"#ffffff00");g.fillStyle=r;g.fillRect(0,0,s,s)});
+    tex.px=mk(4,(g,s)=>{g.fillStyle="#fff";g.fillRect(0,0,s,s)});
+    app.ticker.add(step);ready=true;
+  }catch(e){failed=true;ready=false;console.log&&console.log("R1",e&&e.message)}
+}
+function fit(){const sc=scn();if(!sc||!app)return;if(!cv.isConnected)sc.appendChild(cv);const w=sc.clientWidth,h=sc.clientHeight;if(w>1&&h>1&&(Math.abs(app.screen.width-w)>1||Math.abs(app.screen.height-h)>1))app.renderer.resize(w,h)}
+function add(t){if(tw.length>700)return false;tw.push(t);app.stage.addChild(t.s);if(!app.ticker.started)app.ticker.start();return true}
+function step(){
+  const dt=Math.min(64,app.ticker.deltaMS);
+  for(let i=tw.length-1;i>=0;i--){const t=tw[i];if(t.del>0){t.del-=dt;t.s.visible=false;continue}t.s.visible=true;t.t+=dt;const p=Math.min(1,t.t/t.d);t.f(t.s,p);if(p>=1){app.stage.removeChild(t.s);t.s.destroy();tw.splice(i,1)}}
+  if(!tw.length)app.ticker.stop();
+}
+const ez=p=>1-(1-p)*(1-p);
+const usable=()=>{if(failed)return false;if(!ready)return false;fit();return true};
+/* частица */
+const _pfx=pfx;
+pfx=function(x,y,c,sz,dx,dy,dur,o){
+  if(!usable())return _pfx.apply(this,arguments);
+  try{const g=(o&&o.g)||0,sq=o&&o.sq,s=new PIXI.Sprite(sq?tex.sq:tex.dot);s.anchor.set(.5);s.tint=hex(c);s.blendMode=PIXI.BLEND_MODES.ADD;s.x=x;s.y=y;const base=sz/(sq?24:44)*(sq?1:2.2);
+    if(!add({s,t:0,d:dur,del:0,f:(s,p)=>{const e=ez(p);s.x=x+dx*e;s.y=y+dy*e+g*p*p;s.scale.set(base*(1-.85*p));s.alpha=p<.5?1:1-(p-.5)*2;if(sq)s.rotation=p*5}})){s.destroy();}
+  }catch(e){return _pfx.apply(this,arguments)}
+};
+/* вспышка-диск */
+const _disc=disc;
+disc=function(p,c,sz,dur,op){
+  if(!usable())return _disc.apply(this,arguments);
+  try{const s=new PIXI.Sprite(tex.dot);s.anchor.set(.5);s.tint=hex(c);s.blendMode=PIXI.BLEND_MODES.ADD;s.x=p.x;s.y=p.y;const a=op||.95,b=sz/64*1.25;add({s,t:0,d:dur||320,del:0,f:(s,q)=>{s.scale.set(b*(.2+.8*ez(q)));s.alpha=a*(1-q)}})}catch(e){return _disc.apply(this,arguments)}
+};
+/* дым */
+const _smoke=smoke;
+smoke=function(x,y,c){
+  if(!usable())return _smoke.apply(this,arguments);
+  try{const sz=rand(16,28),s=new PIXI.Sprite(tex.soft);s.anchor.set(.5);s.tint=hex(c);s.x=x;s.y=y;const dx=rand(-12,12),dy=rand(-44,-22),d=rand(520,820);add({s,t:0,d,del:0,f:(s,q)=>{s.x=x+dx*q;s.y=y+dy*q;s.scale.set(sz/64*2*(.5+1.3*q));s.alpha=.6*(1-q)}})}catch(e){return _smoke.apply(this,arguments)}
+};
+/* кольцо */
+const _ring=ring;
+ring=function(x,y,c,sz,dur,delay){
+  if(!usable())return _ring.apply(this,arguments);
+  try{const s=new PIXI.Sprite(tex.ring);s.anchor.set(.5);s.tint=hex(c);s.blendMode=PIXI.BLEND_MODES.ADD;s.x=x;s.y=y;const b=sz/128;add({s,t:0,d:dur||450,del:delay||0,f:(s,q)=>{s.scale.set(b*(.15+1.1*ez(q)));s.alpha=.95*(1-q)}})}catch(e){return _ring.apply(this,arguments)}
+};
+/* вспышка на весь экран */
+const _flash=flash;
+flash=function(c,a,delay){
+  if(!usable())return _flash.apply(this,arguments);
+  try{const s=new PIXI.Sprite(tex.px);s.tint=hex(c);s.x=0;s.y=0;s.width=app.screen.width;s.height=app.screen.height;const A=a||.5;add({s,t:0,d:380,del:delay||0,f:(s,q)=>{s.alpha=A*(1-q)}})}catch(e){return _flash.apply(this,arguments)}
+};
+window.__r1=()=>({ready,failed,n:tw.length});
+/* загрузка движка */
+const sc0=document.createElement("script");sc0.src=PIXI_URL;sc0.async=true;
+sc0.onload=()=>{boot()};sc0.onerror=()=>{failed=true};
+document.head.appendChild(sc0);
+}catch(e){console.log&&console.log("R1",e&&e.message)}})();
 </script>
 </body>
 </html>
