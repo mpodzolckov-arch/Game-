@@ -4984,8 +4984,18 @@ const st=document.createElement("style");st.textContent=`
 .gcs{position:sticky;bottom:0;background:#0f0b16;padding:6px 0 2px;z-index:3;display:flex;gap:6px}
 .gcs input{flex:1;min-width:0;font-size:16px!important}
 #sh,#sh .body{max-width:100vw;overflow-x:hidden}
+#app.gf:has(#sheet:not([hidden])) :is(#hud,#scene,#info,#bar){visibility:hidden}
+#sheet.gf:not([hidden]){background:#0f0b16}
+#sheet.gf #sh{height:100%!important;max-height:100%!important;border-radius:0;border-top:0}
+#sh .body.gchat{display:flex;flex-direction:column;overflow:hidden;padding-bottom:8px}
+#sh .body.gchat .gh{display:none}
+#sh .body.gchat .gnav{margin:0 0 6px;flex:none}
+#sh .body.gchat .gnav button{padding:4px 2px;flex-direction:row;justify-content:center;gap:4px}
+#sh .body.gchat .gnav button i{font-size:15px}
+#sh .body.gchat .gcl{flex:1 1 auto;height:auto!important;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#sh .body.gchat .gcs{position:static;flex:none;margin-top:6px;padding:0}
 `;document.head.appendChild(st);
-const _rr=render;render=function(){try{const a=document.activeElement;if(a&&a.id==='gci'&&document.getElementById('sh')&&document.getElementById('sh').contains(a))return}catch(e){}return _rr.apply(this,arguments)};
+const _rr=render;render=function(){try{const a=document.activeElement;if(a&&a.id==='gci'&&document.getElementById('sh')&&document.getElementById('sh').contains(a))return}catch(e){}const r=_rr.apply(this,arguments);try{const sh=document.getElementById('sheet'),g=tab==='guild'&&!sh.hidden;sh.classList.toggle('gf',g);document.getElementById('app').classList.toggle('gf',g);const b=document.querySelector('#sh .body');if(b)b.classList.toggle('gchat',g&&window.__gsub==='chat');document.querySelectorAll('#sh .gh svg').forEach(v=>{try{v.pauseAnimations()}catch(e){}});const c=document.getElementById('gcl');if(c&&!c.dataset.s0){c.dataset.s0=1;c.scrollTop=c.scrollHeight}}catch(e){}return r};
 const _gs=ACT.gsub;
 ACT.gsub=function(i){_gs&&_gs(i);try{if(i==="chat"){const b=document.querySelector("#sh .body");setTimeout(()=>{b&&(b.scrollTop=b.scrollHeight)},30)}}catch(e){}};
 }catch(e){console.log&&console.log("P1",e&&e.message)}})();
