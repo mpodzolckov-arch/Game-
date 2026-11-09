@@ -3772,7 +3772,7 @@ const hero2=o=>{const p=Object.assign({fem:0,sk:"#f0c8a0",c:"#6a7a8a",c2:"#a8b8c
  const hr=(o&&o.hr!==undefined)?o.hr:-1,wr=(o&&o.wr!==undefined)?o.wr:-1,SK=hr>=0?SKP[hr]:null;
  const sp2=(x,y,c,sc)=>'<g transform="translate('+x+' '+y+') scale('+sc+')">'+spark(0,0,c)+'</g>';
  const body=wing+(SK&&hr==4&&!p.wing?(()=>{const w=P("M70 96Q30 36 -2 20Q4 66 8 96Q2 120 16 144Q32 120 44 138Q54 118 74 132z","#fffaf0")+ST("M70 96Q32 66 2 26M66 108Q32 100 8 98M70 116Q44 128 18 144","#e0b030",2.2);return w+mi2(w)})():"")+cape+armL+legs+torso+pads+armR+sh;
- const tint=SK?'<defs><filter id="sk'+hr+'" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feFlood flood-color="'+SK[3]+'" result="f"/><feBlend in="f" in2="SourceGraphic" mode="color" result="c"/><feComposite in="c" in2="SourceGraphic" operator="arithmetic" k1="0" k2="'+(hr>=5?".85":".62")+'" k3="'+(hr>=5?".15":".38")+'" k4="0" result="m"/><feComposite in="m" in2="SourceAlpha" operator="in"/></filter></defs>':"";
+ const tint=SK?'<defs><filter id="sk'+hr+'" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feFlood flood-color="'+(hr==11?"#55506e":SK[3])+'" result="f"/><feBlend in="f" in2="SourceGraphic" mode="color" result="c"/><feComposite in="c" in2="SourceGraphic" operator="arithmetic" k1="0" k2="'+(hr>=5?".85":".62")+'" k3="'+(hr>=5?".15":".38")+'" k4="0" result="m"/><feComposite in="m" in2="SourceAlpha" operator="in"/></filter></defs>':"";
  const sback=(SK&&hr>=2?flameG(100,160,1.42,SK[3]):"")+(SK&&hr>=5&&typeof auraArt==="function"?'<g transform="translate(-35 -40) scale(2.5)">'+auraArt(hr)+"</g>":"");
  const sfront=SK?((hr>=2?sp2(18,30,SK[1],2.2)+sp2(190,60,SK[1],2.4)+sp2(30,170,SK[1],1.8):"")+(hr==3?sp2(176,20,"#ff8a9c",2)+sp2(24,100,"#ff3b5c",2):"")+(hr==4?ST("M62 -12Q100 -26 138 -12","#ffe9a0",5)+ST("M62 -12Q100 -26 138 -12","#fff",1.4):"")):"";
  const WC=wr>=0?SKP[wr][3]:"";
@@ -3819,8 +3819,8 @@ const hero2=o=>{const p=Object.assign({fem:0,sk:"#f0c8a0",c:"#6a7a8a",c2:"#a8b8c
 
 
  let wdec="";
- if(wr>=0){const SW=SKP[wr],t=wr,M=["#cfd8e6","#d8c8f0","#ffd34a","#ffa05a","#fff4c0"][Math.min(t,4)],M2=["#8a98b0","#8a6ab8","#b8801a","#b84a2a","#e0b030"][Math.min(t,4)],L=SW[1],G=SW[3],D=SW[2],OL='stroke="'+K+'" stroke-width="1.8"';
-  const RB=["#4aa3ff","#c080ff","#ff3b5c","#ff3b5c","#ffe9a0"][Math.min(t,4)];
+ if(wr>=0){const SW=SKP[wr],t=wr,M=t>=5?SW[1]:["#cfd8e6","#d8c8f0","#ffd34a","#ffa05a","#fff4c0"][Math.min(t,4)],M2=t>=5?SW[0]:["#8a98b0","#8a6ab8","#b8801a","#b84a2a","#e0b030"][Math.min(t,4)],L=SW[1],G=SW[3],D=SW[2],OL='stroke="'+K+'" stroke-width="1.8"';
+  const RB=t>=5?SW[3]:["#4aa3ff","#c080ff","#ff3b5c","#ff3b5c","#ffe9a0"][Math.min(t,4)];
   const gem=(x,y,r,c)=>C(x,y,r+1.8,K)+C(x,y,r,c||G)+C(x-r*.3,y-r*.3,r*.38,"#fff");
   const dia=(x,y,r,c)=>P("M"+x+" "+(y-r)+"l"+(r*.7)+" "+r+"l"+(-r*.7)+" "+r+"l"+(-r*.7)+" "+(-r)+"z",c||L,'stroke="'+K+'" stroke-width="1.2"');
   const tas=(x,y,len,c)=>ST("M"+x+" "+y+"Q"+(x-7)+" "+(y+len*.5)+" "+(x-2)+" "+(y+len),K,5.4)+ST("M"+x+" "+y+"Q"+(x-7)+" "+(y+len*.5)+" "+(x-2)+" "+(y+len),c||G,2.8)+P("M"+(x-8)+" "+(y+len)+"h12l-2 15h-8z",M,OL)+(t>=3?P("M"+(x-6)+" "+(y+len+15)+"l-3 8M"+(x-2)+" "+(y+len+15)+"v9M"+(x+2)+" "+(y+len+15)+"l3 8","none"):"");
@@ -3880,14 +3880,15 @@ const hero2=o=>{const p=Object.assign({fem:0,sk:"#f0c8a0",c:"#6a7a8a",c2:"#a8b8c
    if(t>=4)wdec+=glow(190,190,26,"#fff6b0")+[0,1,2,3].map(i=>'<g><animateTransform attributeName="transform" type="translate" values="0 0;'+(i%2?14:-14)+' -50" dur="'+(2.6+i*.3)+'s" begin="'+(-i*.7)+'s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="'+(2.6+i*.3)+'s" begin="'+(-i*.7)+'s" repeatCount="indefinite"/><text x="'+(176+i*12)+'" y="160" font-size="18" fill="#fff6b0" stroke="#1b1226" stroke-width="1">♪</text></g>').join("");
   }
  }
- if(o&&o.wonly)return svg("0 -30 220 270",'<rect x="0" y="-30" width="220" height="270" fill="none"/>'+W+wdec+wfx,"brt");
- return svg("0 -30 220 270",tint+aura+sback+pbk+(SK?'<g filter="url(#sk'+hr+')">'+body+'</g>'+pfx0+ext+handL+(p.hn?hairB:'<g filter="url(#sk'+hr+')">'+hairB+'</g>')+ears+face+(p.hn?hairF:'<g filter="url(#sk'+hr+')">'+hairF+'</g>')+HP.fc+'<g filter="url(#sk'+hr+')">'+hat+'</g>':body+handL+head)+crown+(p.halo?glow(100,16,36,"#fff6b0"):"")+W+wdec+wfx+fist+sfront+pfx,"brt")};
+const WT=wr>=5?'<defs><filter id="wk'+wr+'" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feFlood flood-color="'+(wr==11?"#55506e":SKP[wr][3])+'" result="f"/><feBlend in="f" in2="SourceGraphic" mode="color" result="c"/><feComposite in="c" in2="SourceGraphic" operator="arithmetic" k1="0" k2=".88" k3=".12" k4="0" result="m"/><feComposite in="m" in2="SourceAlpha" operator="in"/></filter></defs>':"",WW=wr>=5?WT+'<g filter="url(#wk'+wr+')">'+W+'</g>':W;
+ if(o&&o.wonly)return svg("0 -30 220 270",'<rect x="0" y="-30" width="220" height="270" fill="none"/>'+WW+wdec+wfx,"brt");
+ return svg("0 -30 220 270",tint+aura+sback+pbk+(SK?'<g filter="url(#sk'+hr+')">'+body+'</g>'+pfx0+ext+handL+(p.hn?hairB:'<g filter="url(#sk'+hr+')">'+hairB+'</g>')+ears+face+(p.hn?hairF:'<g filter="url(#sk'+hr+')">'+hairF+'</g>')+HP.fc+'<g filter="url(#sk'+hr+')">'+hat+'</g>':body+handL+head)+crown+(p.halo?glow(100,16,36,"#fff6b0"):"")+WW+wdec+wfx+fist+sfront+pfx,"brt")};
 const HSPEC={
  warrior:{c:"#8a98a8",c2:"#c8d4e0",d:"#2a3040",hat:"helm",hc:"#9aa8b8",hc2:"#d8b040",shield:"#c02030",cape:"#a02030",wp:"sword",trim:"#d8b040",hair:"#5a3a1a",ec:"#3a6a9a",beard:"#5a3a1a"},
  swordsman:{c:"#4a6aa0",c2:"#8aa8d8",d:"#1a2a4a",hair:"#e8d8a0",hs:"spike",wp:"sword",shield:"#f0e8c8",cape:"#2a3a6a",trim:"#e8c850",ec:"#2a7ad0"},
  mage:{robe:"#3a4a9a",hat:"wiz",hc:"#2a3a80",hc2:"#e8c850",beard:"#e8e8f0",hair:"#e8e8f0",wp:"staff",wc:"#8ac8ff",trim:"#e8c850",aura:"#7aa8ff",arm:0,ec:"#4a7ad0"},
  wmage:{robe:"#2a8a9a",hat:"wiz",hc:"#1a6a7a",hc2:"#e8c850",beard:"#e8f4f8",hair:"#e8f4f8",wp:"staff",wc:"#4ad8ff",trim:"#bff0ff",aura:"#4ad8ff",arm:0,ec:"#2a8ad0"},
- fmage:{robe:"#a03a1a",hat:"wiz",hc:"#7a2a10",hc2:"#ffb02e",hair:"#d84a1a",hs:"long",wp:"staff",wc:"#ff8a1a",trim:"#ffb02e",aura:"#ff6a1a",arm:0,ec:"#e8602a"},
+ fmage:{robe:"#a03a1a",hat:"wiz",hc:"#7a2a10",hc2:"#ffb02e",hair:"#d84a1a",beard:"#e8602a",hs:"long",wp:"staff",wc:"#ff8a1a",trim:"#ffb02e",aura:"#ff6a1a",arm:0,ec:"#e8602a"},
  lightning:{robe:"#6a4aa8",hat:"wiz",hc:"#4a2a88",hc2:"#ffe03a",beard:"#f0f0ff",hair:"#f0f0ff",wp:"staff",wc:"#ffe03a",trim:"#ffe03a",aura:"#ffe03a",arm:0,ec:"#ffd23a"},
  witch:{robe:"#2a5a3a",hat:"wiz",hc:"#1a3a28",hc2:"#9aff3a",hair:"#3aa860",hs:"long",wp:"staff",wc:"#8aff3a",trim:"#9aff3a",aura:"#6aff3a",arm:0,sk:"#d8e8c0",ec:"#8aff3a"},
  necro:{robe:"#2a2a38",hat:"hood",hc:"#1a1a26",sk:"#d8d8c8",wp:"staff",wc:"#7affc0",trim:"#7affc0",aura:"#4affa0",arm:0,ec:"#7affc0",mask:"#e8e8d8"},
